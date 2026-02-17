@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Energy KPI Card — Preview</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #0a0e27;
+            font-family: 'Roboto', sans-serif;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 24px;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 40px;
+        }
+
+        .demo-cell {
+            position: relative;
+            border-radius: 8px;
+        }
+
+        .demo-cell.small {
+            width: 200px;
+            height: 140px;
+        }
+
+        .demo-cell.medium {
+            width: 300px;
+            height: 180px;
+        }
+
+        .demo-cell.wide {
+            width: 400px;
+            height: 140px;
+        }
+
+        .label {
+            color: #556;
+            font-size: 11px;
+            text-align: center;
+            margin-bottom: 6px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+    </style>
+    <link rel="stylesheet" href=".css">
+</head>
+
+<body>
+    <div>
+        <div class="label">Small (200×140)</div>
+        <div class="demo-cell small" id="card1"></div>
+    </div>
+    <div>
+        <div class="label">Medium (300×180)</div>
+        <div class="demo-cell medium" id="card2"></div>
+    </div>
+    <div>
+        <div class="label">Wide (400×140)</div>
+        <div class="demo-cell wide" id="card3"></div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        // Inject card HTML into each demo cell
+        var cardHTML = `
+<div class="energy-card">
+    <div class="card-header">
+        <div class="card-title js-kpi-title">--</div>
+    </div>
+    <div class="card-body">
+        <span class="metric-value skeleton js-kpi-value">--</span>
+        <span class="metric-unit js-kpi-unit"></span>
+    </div>
+    <div class="card-footer">
+        <div class="card-subtitle js-kpi-subtitle">--</div>
+    </div>
+</div>`;
+
+        $('#card1, #card2, #card3').html(cardHTML);
+
+        // Simulate ThingsBoard widget context for each card
+        function simulateWidget(containerId, settings, dataValue) {
+            var $container = $('#' + containerId);
+
+            var self = {};
+            self.ctx = {
+                $container: $container[0],
+                settings: settings,
+                data: dataValue !== null ? [{ data: [[Date.now(), dataValue]] }] : [],
+                detectChanges: function () { }
+            };
+
+            // --- Paste the JS logic inline (mirrors Best/.js) ---
+            self.updateDom = function () {
+                var $el = $(self.ctx.$container);
+                var s = self.ctx.settings;
+                var mode = s.cardMode || 'custom';
+                var configMap = {
+                    'today': { title: "TODAY'S ENERGY", sub: 'Today' },
+                    'mtd': { title: 'MTD ENERGY', sub: 'Month-to-Date' },
+                    'ytd': { title: 'YTD ENERGY', sub: 'Year-to-Date' },
+                    'life': { title: 'LIFETIME ENERGY', sub: 'Since COD' },
+                    'custom': { title: 'ENERGY', sub: 'Production' }
+                };
+                var cfg = configMap[mode] || configMap['custom'];
+                var title = s.overrideTitle || cfg.title;
+                var sub = s.overrideSub || cfg.sub;
+                $el.find('.js-kpi-title').text(title);
+                $el.find('.js-kpi-subtitle').text(sub);
+            };
+
+            self.onDataUpdated = function () {
+                var $el = $(self.ctx.$container);
+                var $valElement = $el.find('.js-kpi-value');
+                var $unitElement = $el.find('.js-kpi-unit');
+                if (!self.ctx.data || self.ctx.data.length === 0 ||
+                    !self.ctx.data[0].data || self.ctx.data[0].data.length === 0) {
+                    $valElement.text('--');
+                    return;
+                }
+                var rawVal = self.ctx.data[0].data[0][1];
+                if (rawVal === null || rawVal === undefined || isNaN(parseFloat(rawVal))) {
+                    $valElement.text('--');
+                    return;
+                }
+                var val = parseFloat(rawVal);
+                var inputDiv = self.ctx.settings.inputDivider || 1;
+                var mwhVal = val / inputDiv;
+                var displayVal = mwhVal;
+                var displayUnit = 'MWh';
+                var autoScale = (self.ctx.settings.autoScale !== false);
+                if (autoScale && Math.abs(mwhVal) >= 1000) {
+                    displayVal = mwhVal / 1000;
+                    displayUnit = 'GWh';
+                }
+                var decimals = (self.ctx.settings.decimals !== undefined) ? self.ctx.settings.decimals : 1;
+                var formattedVal = displayVal.toLocaleString('en-US', {
+                    minimumFractionDigits: decimals,
+                    maximumFractionDigits: decimals
+                });
+                $valElement.text(formattedVal);
+                $valElement.removeClass('skeleton');
+                $unitElement.text(displayUnit);
+            };
+
+            self.onResize = function () {
+                var $el = $(self.ctx.$container);
+                var h = $el.height();
+                var w = $el.width();
+                var baseSize = Math.min(h, w) / 5;
+                if (w > h * 2.5) baseSize = h / 2.5;
+                if (baseSize < 10) baseSize = 10;
+                if (baseSize > 40) baseSize = 40;
+                $el.find('.energy-card').css('font-size', baseSize + 'px');
+            };
+
+            self.updateDom();
+            self.onResize();
+            self.onDataUpdated();
+        }
+
+        // Three demo scenarios
+        simulateWidget('card1', { cardMode: 'today', inputDivider: 1000 }, 45230);       // 45.2 MWh
+        simulateWidget('card2', { cardMode: 'ytd', inputDivider: 1000 }, 12500000);    // 12,500.0 MWh → 12.5 GWh
+        simulateWidget('card3', { cardMode: 'life', inputDivider: 1000, decimals: 2 }, 98765432); // → 98.77 GWh
+    </script>
+</body>
+
+</html>
