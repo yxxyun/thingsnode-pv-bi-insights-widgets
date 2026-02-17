@@ -1,0 +1,8 @@
+[
+  {
+    "id": "widgetTitle",
+    "name": "Widget Title",
+    "type": "text",
+    "default": "Portfolio Site Locations"
+  }
+]

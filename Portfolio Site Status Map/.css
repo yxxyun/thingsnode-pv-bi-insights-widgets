@@ -1,0 +1,283 @@
+/* ========================================
+   Portfolio Site Status Map
+   ThingsBoard v4.3.0 PE | Latest Values
+   Dynamic scaling — all sizes in em
+   ======================================== */
+.map-card {
+    /* --- COLOR TOKENS --- */
+    --c-bg: rgba(2, 10, 67, 0.95);
+    --c-text: #FFFFFF;
+    --c-text-dim: #B0BEC5;
+    --c-healthy: #66BB6A;
+    --c-warning: #FFC107;
+    --c-fault: #FF5252;
+    --c-border: rgba(6, 245, 255, 0.3);
+    --c-glow: rgba(6, 245, 255, 0.08);
+    --c-panel: rgba(2, 10, 67, 0.88);
+
+    /* --- LAYOUT: Absolute fill --- */
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+
+    display: flex;
+    flex-direction: column;
+
+    background-color: var(--c-bg);
+    border: 1px solid var(--c-border);
+    box-shadow: 0 0 0.8em var(--c-glow), inset 0 0 1em rgba(0, 0, 0, 0.3);
+    border-radius: 0.5em;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Roboto', sans-serif;
+    color: var(--c-text);
+    overflow: hidden;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.map-card:hover {
+    border-color: rgba(6, 245, 255, 0.55);
+    box-shadow: 0 0 1.4em rgba(6, 245, 255, 0.15), inset 0 0 0.6em rgba(0, 0, 0, 0.2);
+}
+
+/* ===================
+   HEADER (floating over map)
+   =================== */
+.map-header {
+    position: absolute;
+    top: 0.5em;
+    left: 0.5em;
+    z-index: 500;
+    background: var(--c-panel);
+    padding: 0.3em 0.6em;
+    border-radius: 0.3em;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    gap: 0.6em;
+    max-width: 80%;
+}
+
+.map-title {
+    font-size: 0.9em;
+    font-weight: 700;
+    color: var(--c-text);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.map-stats {
+    font-size: 0.6em;
+    color: var(--c-text-dim);
+    font-weight: 500;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.map-stats .stat-ok {
+    color: var(--c-healthy);
+    font-weight: 700;
+}
+
+.map-stats .stat-warn {
+    color: var(--c-warning);
+    font-weight: 700;
+}
+
+.map-stats .stat-fault {
+    color: var(--c-fault);
+    font-weight: 700;
+}
+
+/* ===================
+   MAP
+   =================== */
+.map-container {
+    flex: 1;
+    width: 100%;
+    height: 100%;
+    background: #0a0a2e;
+    z-index: 1;
+}
+
+/* ===================
+   MARKER ANIMATIONS
+   =================== */
+@keyframes pulse-warning {
+    0% {
+        box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7);
+    }
+
+    70% {
+        box-shadow: 0 0 0 10px rgba(255, 193, 7, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(255, 193, 7, 0);
+    }
+}
+
+@keyframes pulse-fault {
+    0% {
+        box-shadow: 0 0 0 0 rgba(255, 82, 82, 0.7);
+    }
+
+    70% {
+        box-shadow: 0 0 0 15px rgba(255, 82, 82, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(255, 82, 82, 0);
+    }
+}
+
+/* ===================
+   LEAFLET TOOLTIP OVERRIDE
+   =================== */
+.leaflet-tooltip-custom {
+    background: var(--c-panel);
+    border: 1px solid rgba(6, 245, 255, 0.5);
+    color: var(--c-text);
+    font-family: 'Roboto', sans-serif;
+    font-size: 12px;
+    border-radius: 0.3em;
+    padding: 0.5em 0.6em;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    max-width: 220px;
+}
+
+.leaflet-tooltip-custom .tt-name {
+    font-weight: 700;
+    font-size: 1.1em;
+    margin-bottom: 0.2em;
+}
+
+.leaflet-tooltip-custom .tt-detail {
+    color: var(--c-text-dim);
+    font-size: 0.9em;
+    line-height: 1.4;
+}
+
+.leaflet-tooltip-custom .tt-rar {
+    color: var(--c-warning);
+    font-weight: 600;
+    margin-top: 0.15em;
+}
+
+.leaflet-tooltip-left::before,
+.leaflet-tooltip-right::before {
+    border-right-color: rgba(6, 245, 255, 0.5);
+    border-left-color: rgba(6, 245, 255, 0.5);
+}
+
+/* ===================
+   LEGENDS (floating over map)
+   =================== */
+.map-legends {
+    position: absolute;
+    bottom: 0.5em;
+    left: 0.5em;
+    right: 0.5em;
+    display: flex;
+    justify-content: space-between;
+    z-index: 500;
+    pointer-events: none;
+}
+
+.legend-box {
+    background: var(--c-panel);
+    padding: 0.3em 0.5em;
+    border-radius: 0.3em;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(6px);
+    pointer-events: auto;
+    display: flex;
+    gap: 0.5em;
+    align-items: center;
+}
+
+.legend-label {
+    font-size: 0.6em;
+    color: #90A4AE;
+    text-transform: uppercase;
+    font-weight: 700;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.25em;
+    font-size: 0.6em;
+    color: var(--c-text-dim);
+    font-weight: 500;
+}
+
+.dot {
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+}
+
+/* Capacity dots */
+.size-s {
+    width: 0.35em;
+    height: 0.35em;
+    background: #B0BEC5;
+}
+
+.size-m {
+    width: 0.55em;
+    height: 0.55em;
+    background: #B0BEC5;
+}
+
+.size-l {
+    width: 0.8em;
+    height: 0.8em;
+    background: #B0BEC5;
+}
+
+/* Status dots */
+.color-ok {
+    width: 0.45em;
+    height: 0.45em;
+    background: var(--c-healthy);
+}
+
+.color-warn {
+    width: 0.45em;
+    height: 0.45em;
+    background: var(--c-warning);
+}
+
+.color-fault {
+    width: 0.45em;
+    height: 0.45em;
+    background: var(--c-fault);
+}
+
+/* ===================
+   LEAFLET ZOOM CONTROLS
+   =================== */
+.leaflet-control-zoom a {
+    background: var(--c-panel) !important;
+    color: var(--c-text) !important;
+    border-color: rgba(255, 255, 255, 0.15) !important;
+    font-weight: 700;
+    transition: background 0.2s ease;
+}
+
+.leaflet-control-zoom a:hover {
+    background: rgba(6, 245, 255, 0.15) !important;
+}
