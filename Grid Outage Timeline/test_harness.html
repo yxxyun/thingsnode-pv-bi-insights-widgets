@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grid Outage Timeline — Visual Test</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style id="widget-css"></style>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #0d1117;
+            font-family: 'Roboto', sans-serif;
+            color: #fff;
+            padding: 24px;
+        }
+
+        h1 {
+            font-size: 18px;
+            margin-bottom: 16px;
+            color: #8b949e;
+        }
+
+        .test-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 28px;
+            margin-bottom: 40px;
+        }
+
+        .test-cell {
+            position: relative;
+            border: 1px dashed rgba(255, 255, 255, 0.15);
+        }
+
+        .test-cell::after {
+            content: attr(data-label);
+            position: absolute;
+            bottom: -18px;
+            left: 0;
+            font-size: 11px;
+            color: #8b949e;
+        }
+
+        .controls {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .controls label {
+            font-size: 13px;
+            color: #8b949e;
+        }
+
+        .controls input[type=range] {
+            width: 160px;
+        }
+
+        .controls span {
+            font-size: 12px;
+            color: #58a6ff;
+            min-width: 60px;
+        }
+
+        #custom-cell {
+            transition: width 0.2s, height 0.2s;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Grid Outage Timeline v2.0 — Visual Test Harness</h1>
+
+    <div class="controls">
+        <label>Width: <input type="range" id="rW" min="400" max="1100" value="700"><span id="vW">700px</span></label>
+        <label>Height: <input type="range" id="rH" min="120" max="400" value="220"><span id="vH">220px</span></label>
+    </div>
+
+    <div class="test-grid">
+        <!-- Resizable — Multiple events -->
+        <div class="test-cell" id="custom-cell" data-label="Resizable — 4 Events (CRITICAL)"
+            style="width:700px;height:220px;" data-scenario="many"></div>
+
+        <!-- Fixed — Few events -->
+        <div class="test-cell" data-label="700×200 — 1 Event (WARNING)" style="width:700px;height:200px;"
+            data-scenario="few"></div>
+
+        <!-- Fixed — Empty -->
+        <div class="test-cell" data-label="600×180 — No Events (CLEAR)" style="width:600px;height:180px;"
+            data-scenario="empty"></div>
+
+        <!-- Wide -->
+        <div class="test-cell" data-label="900×250 — Many Events (wide view)" style="width:900px;height:250px;"
+            data-scenario="wide"></div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script>
+        var now = Date.now();
+        var day = 86400000;
+        var hr = 3600000;
+
+        var scenarios = {
+            many: {
+                settings: { enableDemoData: false },
+                data: [
+                    { startTime: now - (day * 6), endTime: now - (day * 6) + (hr * 2.5), eventType: 'CEB Grid Fault', energyLost: 5.2, severity: 'high' },
+                    { startTime: now - (day * 4), endTime: now - (day * 4) + (hr * 0.8), eventType: 'Voltage Sag', energyLost: 1.1, severity: 'low' },
+                    { startTime: now - (day * 2), endTime: now - (day * 2) + (hr * 6), eventType: 'Scheduled Maint.', energyLost: 15.3, severity: 'maint' },
+                    { startTime: now - (day * 0.5), endTime: now - (day * 0.5) + (hr * 1.2), eventType: 'Frequency Trip', energyLost: 2.8, severity: 'med' }
+                ]
+            },
+            few: {
+                settings: { enableDemoData: false },
+                data: [
+                    { startTime: now - (day * 3), endTime: now - (day * 3) + (hr * 3), eventType: 'Transformer Fail', energyLost: 8.4, severity: 'high' }
+                ]
+            },
+            empty: {
+                settings: { enableDemoData: false },
+                data: []
+            },
+            wide: {
+                settings: { enableDemoData: false, daysToShow: 14 },
+                data: [
+                    { startTime: now - (day * 12), endTime: now - (day * 12) + (hr * 4), eventType: 'Line Fault', energyLost: 9.1, severity: 'high' },
+                    { startTime: now - (day * 10), endTime: now - (day * 10) + (hr * 1.5), eventType: 'Under-Voltage', energyLost: 2.3, severity: 'low' },
+                    { startTime: now - (day * 7), endTime: now - (day * 7) + (hr * 8), eventType: 'Annual Maintenance', energyLost: 22.0, severity: 'maint' },
+                    { startTime: now - (day * 4), endTime: now - (day * 4) + (hr * 2), eventType: 'Overload Trip', energyLost: 4.5, severity: 'med' },
+                    { startTime: now - (day * 1), endTime: now - (day * 1) + (hr * 0.5), eventType: 'Relay Fault', energyLost: 0.7, severity: 'low' }
+                ]
+            }
+        };
+
+        // Load CSS
+        fetch('.css').then(function (r) { return r.text(); }).then(function (css) {
+            document.getElementById('widget-css').textContent = css;
+        });
+
+        // Load HTML + JS
+        Promise.all([
+            fetch('.html').then(function (r) { return r.text(); }),
+            fetch('.js').then(function (r) { return r.text(); })
+        ]).then(function (results) {
+            var html = results[0];
+            var jsCode = results[1];
+
+            document.querySelectorAll('.test-cell').forEach(function (cell) {
+                cell.innerHTML = html;
+                var scenarioKey = cell.dataset.scenario;
+                var scen = scenarios[scenarioKey] || scenarios.many;
+                runWidget(cell, scen, jsCode);
+            });
+
+            // Slider controls
+            var rW = document.getElementById('rW');
+            var rH = document.getElementById('rH');
+            var vW = document.getElementById('vW');
+            var vH = document.getElementById('vH');
+            var customCell = document.getElementById('custom-cell');
+
+            function updateSize() {
+                customCell.style.width = rW.value + 'px';
+                customCell.style.height = rH.value + 'px';
+                vW.textContent = rW.value + 'px';
+                vH.textContent = rH.value + 'px';
+                if (customCell._resizeFn) customCell._resizeFn();
+            }
+            rW.addEventListener('input', updateSize);
+            rH.addEventListener('input', updateSize);
+        });
+
+        function runWidget(cell, scenario, jsCode) {
+            var $cell = $(cell);
+
+            var baseSettings = {
+                widgetTitle: 'GRID OUTAGE TIMELINE',
+                daysToShow: 7,
+                energyUnit: 'MWh',
+                enableDemoData: false
+            };
+
+            // Merge scenario settings
+            if (scenario.settings) {
+                for (var key in scenario.settings) {
+                    baseSettings[key] = scenario.settings[key];
+                }
+            }
+
+            var self = {};
+            self.ctx = {
+                $container: $cell,
+                settings: baseSettings,
+                data: [{
+                    data: [[Date.now(), JSON.stringify(scenario.data)]]
+                }],
+                detectChanges: function () { }
+            };
+
+            try {
+                var fn = new Function('self', jsCode);
+                fn(self);
+            } catch (e) {
+                console.error('Widget JS error:', e);
+            }
+
+            cell._resizeFn = function () {
+                if (self.onResize) self.onResize();
+            };
+
+            $(window).on('resize', function () {
+                if (self.onResize) self.onResize();
+            });
+        }
+    </script>
+
+</body>
+
+</html>

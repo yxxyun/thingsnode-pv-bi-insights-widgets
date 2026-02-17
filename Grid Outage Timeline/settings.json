@@ -1,0 +1,46 @@
+[
+    {
+        "id": "widgetTitle",
+        "name": "Widget Title",
+        "type": "text",
+        "default": "GRID OUTAGE TIMELINE",
+        "helpText": "Header title displayed at the top of the widget."
+    },
+    {
+        "id": "daysToShow",
+        "name": "Days to Show (Rolling Window)",
+        "type": "number",
+        "default": 7,
+        "min": 1,
+        "max": 90,
+        "helpText": "Rolling window size in days. Events outside this window are hidden."
+    },
+    {
+        "id": "energyUnit",
+        "name": "Energy Unit",
+        "type": "text",
+        "default": "MWh",
+        "helpText": "Unit label for energy lost values (e.g. MWh, kWh)."
+    },
+    {
+        "id": "accentColor",
+        "name": "Accent Color",
+        "type": "text",
+        "default": "",
+        "helpText": "Override the border glow accent (CSS color, e.g. #06F5FF). Leave blank for default cyan."
+    },
+    {
+        "id": "tooltipText",
+        "name": "Tooltip Content (Override)",
+        "type": "text",
+        "default": "",
+        "helpText": "Override the dynamic card-level tooltip. Leave empty for auto-generated summary."
+    },
+    {
+        "id": "enableDemoData",
+        "name": "Enable Demo Data",
+        "type": "boolean",
+        "default": true,
+        "helpText": "Show demo events when no real data is available. Disable for production."
+    }
+]

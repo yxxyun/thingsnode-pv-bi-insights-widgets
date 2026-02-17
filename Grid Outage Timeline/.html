@@ -1,0 +1,46 @@
+<div class="timeline-card">
+
+    <!-- ═══ HEADER ═══ -->
+    <div class="card-header">
+        <div class="card-title js-title">GRID OUTAGE TIMELINE</div>
+        <div class="header-right">
+            <span class="status-dot js-status-dot"></span>
+            <span class="status-text js-status-text">--</span>
+            <span class="window-label js-window-label">Last 7 Days</span>
+        </div>
+    </div>
+
+    <!-- ═══ SUMMARY STATS ═══ -->
+    <div class="summary-row">
+        <div class="stat-item">
+            <span class="stat-label">Events</span>
+            <span class="stat-value js-stat-count">--</span>
+        </div>
+        <div class="stat-sep"></div>
+        <div class="stat-item">
+            <span class="stat-label">Total Lost</span>
+            <span class="stat-value js-stat-energy">--</span>
+        </div>
+        <div class="stat-sep"></div>
+        <div class="stat-item">
+            <span class="stat-label">Total Duration</span>
+            <span class="stat-value js-stat-duration">--</span>
+        </div>
+    </div>
+
+    <!-- ═══ TIMELINE BODY ═══ -->
+    <div class="timeline-body">
+        <div class="timeline-track js-track"></div>
+        <div class="timeline-axis js-axis"></div>
+        <div class="empty-state js-empty" style="display:none;">No outage events in this window</div>
+    </div>
+
+    <!-- ═══ EVENT TOOLTIP — JS-driven ═══ -->
+    <div class="event-tooltip js-evt-tooltip"></div>
+
+    <!-- ═══ CARD TOOLTIP — Glassmorphism ═══ -->
+    <div class="tooltip-container">
+        <div class="tooltip-content js-tooltip"></div>
+    </div>
+
+</div>
