@@ -1,0 +1,101 @@
+{
+  "widget": {
+    "typeFullFqn": "tenant.curtailment_vs_potential_power",
+    "type": "latest",
+    "sizeX": 7.5,
+    "sizeY": 3,
+    "config": {
+      "datasources": [
+        {
+          "type": "entity",
+          "name": "",
+          "entityAliasId": "44f9e92e-4f1c-5e3c-de88-fdfe83b85de5",
+          "dataKeys": [
+            {
+              "name": "p341_active_power",
+              "type": "timeseries",
+              "label": "p341_active_power",
+              "color": "#2196f3",
+              "settings": {}
+            }
+          ],
+          "alarmFilterConfig": {
+            "statusList": [
+              "ACTIVE"
+            ]
+          }
+        },
+        {
+          "type": "entity",
+          "entityAliasId": "512cc246-a610-a01b-1a55-7e5815d190dd",
+          "dataKeys": [
+            {
+              "name": "potential_power_profile",
+              "type": "attribute",
+              "label": "potential_power_profile",
+              "color": "#4caf50",
+              "settings": {}
+            }
+          ],
+          "alarmFilterConfig": {
+            "statusList": [
+              "ACTIVE"
+            ]
+          }
+        }
+      ],
+      "showTitle": false,
+      "backgroundColor": "#020A4300",
+      "color": "rgba(0, 0, 0, 0.87)",
+      "padding": "8px",
+      "settings": {},
+      "title": "Attributes card",
+      "decimals": null,
+      "dropShadow": false,
+      "enableFullscreen": true,
+      "enableDataExport": true,
+      "widgetStyle": {},
+      "widgetCss": "",
+      "pageSize": 1024,
+      "noDataDisplayMessage": ""
+    },
+    "row": 0,
+    "col": 0,
+    "id": "82328f04-991d-d6fa-b7bc-b27141371750"
+  },
+  "aliasesInfo": {
+    "datasourceAliases": {
+      "0": {
+        "alias": "P341",
+        "filter": {
+          "type": "singleEntity",
+          "resolveMultiple": false,
+          "singleEntity": {
+            "entityType": "DEVICE",
+            "id": "de9f8910-4bf6-11ef-a776-63b840ab5726"
+          }
+        }
+      },
+      "1": {
+        "alias": "Finance",
+        "filter": {
+          "type": "singleEntity",
+          "resolveMultiple": false,
+          "singleEntity": {
+            "entityType": "DEVICE",
+            "id": "b77aa980-ed19-11f0-af3b-45cf7f181cac"
+          }
+        }
+      }
+    },
+    "targetDeviceAlias": null
+  },
+  "filtersInfo": {
+    "datasourceFilters": {}
+  },
+  "originalSize": {
+    "sizeX": 112,
+    "sizeY": 42
+  },
+  "originalColumns": 128
+}

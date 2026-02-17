@@ -1,0 +1,42 @@
+.curtailment-card {
+    --bg: rgba(2, 10, 67, 0.9);
+    --cyan: #06F5FF;
+    --red: rgba(255, 82, 82, 0.45);
+    --grid: rgba(255,255,255,0.1);
+    --text: #FFFFFF;
+  
+    width: 100%;
+    height: 100%;
+    background: var(--bg);
+    border-radius: 6px;
+    padding: 0.75em;
+    box-sizing: border-box;
+    position: relative;
+    font-family: Roboto, sans-serif;
+  }
+  
+  .card-title {
+    font-size: 0.6em;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text);
+    margin-bottom: 0.5em;
+  }
+  
+  svg {
+    width: 100%;
+    height: calc(100% - 2em);
+  }
+  
+  .custom-tooltip {
+    position: absolute;
+    pointer-events: none;
+    background: rgba(202,218,221,0.85);
+    color: #000;
+    padding: 0.5em;
+    border-radius: 4px;
+    font-size: 0.6em;
+    display: none;
+  }
+  

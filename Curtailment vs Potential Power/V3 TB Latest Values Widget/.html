@@ -1,0 +1,41 @@
+<div class="curt-card">
+
+    <!-- ═══ HEADER ═══ -->
+    <div class="card-header">
+        <div class="card-title js-title">CURTAILMENT VS POTENTIAL POWER</div>
+        <div class="header-status">
+            <span class="status-dot js-status-dot"></span>
+            <span class="status-text js-status-text">--</span>
+        </div>
+    </div>
+
+    <!-- ═══ BODY — Chart.js Canvas ═══ -->
+    <div class="chart-body">
+        <div class="y-axis-title js-y-title">POWER (kW)</div>
+        <div class="chart-container">
+            <canvas class="js-canvas"></canvas>
+        </div>
+    </div>
+
+    <!-- ═══ FOOTER — Legend ═══ -->
+    <div class="card-footer">
+        <div class="legend-item">
+            <div class="legend-line dashed"></div>
+            <span class="legend-label js-legend-potential">Potential Power</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-line solid"></div>
+            <span class="legend-label js-legend-exported">Exported Power</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-block curtailed"></div>
+            <span class="legend-label js-legend-curtailed">Curtailed Energy</span>
+        </div>
+    </div>
+
+    <!-- ═══ TOOLTIP — Glassmorphism ═══ -->
+    <div class="tooltip-container">
+        <div class="tooltip-content js-tooltip"></div>
+    </div>
+
+</div>

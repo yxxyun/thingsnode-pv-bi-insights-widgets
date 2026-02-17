@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Curtailment vs Potential Power V3 — Visual Test</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style id="widget-css"></style>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #0d1117;
+            font-family: 'Roboto', sans-serif;
+            color: #fff;
+            padding: 24px;
+        }
+
+        h1 {
+            font-size: 18px;
+            margin-bottom: 16px;
+            color: #8b949e;
+        }
+
+        .test-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 24px;
+            align-items: flex-start;
+        }
+
+        .test-cell {
+            position: relative;
+            border: 1px dashed rgba(255, 255, 255, 0.15);
+        }
+
+        .test-cell::after {
+            content: attr(data-label);
+            position: absolute;
+            bottom: -20px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 11px;
+            color: #8b949e;
+        }
+
+        .controls {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .controls label {
+            font-size: 13px;
+            color: #8b949e;
+        }
+
+        .controls input[type=range] {
+            width: 160px;
+        }
+
+        .controls span {
+            font-size: 12px;
+            color: #58a6ff;
+            min-width: 60px;
+        }
+
+        #custom-cell {
+            transition: width 0.2s, height 0.2s;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Curtailment vs Potential Power V3 — Visual Verification</h1>
+
+    <div class="controls">
+        <label>Width: <input type="range" id="rW" min="200" max="900" value="550"><span id="vW">550px</span></label>
+        <label>Height: <input type="range" id="rH" min="200" max="600" value="350"><span id="vH">350px</span></label>
+    </div>
+
+    <div class="test-grid">
+        <!-- Resizable widget -->
+        <div class="test-cell" id="custom-cell" data-label="Resizable" style="width:550px;height:350px;"></div>
+
+        <!-- Fixed sizes -->
+        <div class="test-cell" data-label="Small (300×220)" style="width:300px;height:220px;"></div>
+        <div class="test-cell" data-label="Medium (450×300)" style="width:450px;height:300px;"></div>
+        <div class="test-cell" data-label="Wide (700×280)" style="width:700px;height:280px;"></div>
+        <div class="test-cell" data-label="Tall (350×450)" style="width:350px;height:450px;"></div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        /* Load CSS */
+        fetch('.css').then(r => r.text()).then(css => {
+            document.getElementById('widget-css').textContent = css;
+        });
+
+        /* Load HTML template, then bootstrap each cell */
+        fetch('.html').then(r => r.text()).then(html => {
+            document.querySelectorAll('.test-cell').forEach(cell => {
+                cell.innerHTML = html;
+            });
+
+            /* Load widget JS as text and run per-cell */
+            fetch('.js').then(r => r.text()).then(jsCode => {
+                document.querySelectorAll('.test-cell').forEach(function (cell) {
+                    runWidget(cell, jsCode);
+                });
+
+                /* Slider controls for resizable cell */
+                var rW = document.getElementById('rW');
+                var rH = document.getElementById('rH');
+                var vW = document.getElementById('vW');
+                var vH = document.getElementById('vH');
+                var customCell = document.getElementById('custom-cell');
+
+                function updateSize() {
+                    customCell.style.width = rW.value + 'px';
+                    customCell.style.height = rH.value + 'px';
+                    vW.textContent = rW.value + 'px';
+                    vH.textContent = rH.value + 'px';
+                    if (customCell._resizeFn) customCell._resizeFn();
+                }
+                rW.addEventListener('input', updateSize);
+                rH.addEventListener('input', updateSize);
+            });
+        });
+
+        function runWidget(cell, jsCode) {
+            var $cell = $(cell);
+
+            /* Mock self.ctx for the standalone test harness */
+            var self = {};
+            self.ctx = {
+                $container: $cell,
+                settings: {
+                    widgetTitle: 'CURTAILMENT VS POTENTIAL POWER',
+                    unitLabel: 'kW',
+                    maxPower: 1000,
+                    exportLimitKw: 800,
+                    sunriseHour: 6,
+                    sunsetHour: 18,
+                    decimals: 1,
+                    showCurtailmentLabel: true,
+                    potentialLineLabel: 'Potential Power',
+                    exportedAreaLabel: 'Exported Power',
+                    curtailmentLabel: 'Curtailed Energy',
+                    actualPowerKey: 'active_power',
+                    potentialProfileKey: 'potential_power_profile'
+                },
+                data: [],
+                datasources: [],
+                /* Mock services — will fall through to simulation */
+                http: {
+                    get: function () {
+                        return {
+                            subscribe: function (ok, err) { if (err) err('test harness'); }
+                        };
+                    }
+                },
+                attributeService: null,
+                detectChanges: function () { }
+            };
+
+            /* Execute widget JS in the mock context */
+            try {
+                var fn = new Function('self', jsCode);
+                fn(self);
+            } catch (e) {
+                console.error('Widget init error:', e);
+            }
+
+            /* Wire up resize */
+            cell._resizeFn = function () {
+                if (self.onResize) self.onResize();
+            };
+            $(window).on('resize', cell._resizeFn);
+        }
+    </script>
+
+</body>
+
+</html>

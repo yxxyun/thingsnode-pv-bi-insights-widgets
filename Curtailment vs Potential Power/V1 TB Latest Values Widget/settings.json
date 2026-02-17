@@ -1,0 +1,14 @@
+[
+    {
+      "id": "title",
+      "name": "Widget Title",
+      "type": "text",
+      "default": "CURTAILMENT VS POTENTIAL POWER"
+    },
+    {
+      "id": "maxKW",
+      "name": "Fallback Peak Power (MW)",
+      "type": "number",
+      "default": 1.1
+    }
+  ]
