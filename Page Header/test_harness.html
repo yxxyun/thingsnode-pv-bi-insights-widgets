@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Page Header — Visual Test</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+    <style id="widget-css"></style>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #0d1117;
+            font-family: 'Roboto', sans-serif;
+            color: #fff;
+            padding: 24px;
+        }
+
+        h1 {
+            font-size: 18px;
+            margin-bottom: 16px;
+            color: #8b949e;
+        }
+
+        .test-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 28px;
+            margin-bottom: 40px;
+        }
+
+        .test-cell {
+            position: relative;
+            border: 1px dashed rgba(255, 255, 255, 0.15);
+        }
+
+        .test-cell::after {
+            content: attr(data-label);
+            position: absolute;
+            bottom: -18px;
+            left: 0;
+            font-size: 11px;
+            color: #8b949e;
+        }
+
+        .controls {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .controls label {
+            font-size: 13px;
+            color: #8b949e;
+        }
+
+        .controls input[type=range] {
+            width: 200px;
+        }
+
+        .controls span {
+            font-size: 12px;
+            color: #58a6ff;
+            min-width: 60px;
+        }
+
+        #custom-cell {
+            transition: width 0.2s, height 0.2s;
+        }
+
+        .log-panel {
+            margin-top: 32px;
+            padding: 12px;
+            background: #161b22;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            font-size: 12px;
+            color: #8b949e;
+            max-height: 120px;
+            overflow-y: auto;
+        }
+
+        .log-panel .log-entry {
+            padding: 2px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .log-panel .log-entry:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Page Header (Minimal Single-Row) — Visual Test Harness</h1>
+
+    <div class="controls">
+        <label>Width: <input type="range" id="rW" min="600" max="1600" value="1200"><span
+                id="vW">1200px</span></label>
+        <label>Height: <input type="range" id="rH" min="28" max="80" value="45"><span id="vH">45px</span></label>
+    </div>
+
+    <div class="test-grid">
+        <div class="test-cell" id="custom-cell" data-label="Resizable — Active: Energy & Yield"
+            style="width:1200px;height:45px;" data-active="energy_prod"></div>
+
+        <div class="test-cell" data-label="1100x42 — Active: Financials" style="width:1100px;height:42px;"
+            data-active="financial"></div>
+
+        <div class="test-cell" data-label="800x38 — Compact, Active: ESG" style="width:800px;height:38px;"
+            data-active="esg"></div>
+
+        <div class="test-cell" data-label="1400x50 — Wide, Active: Portfolio" style="width:1400px;height:50px;"
+            data-active="portfolio"></div>
+    </div>
+
+    <div class="log-panel" id="log-panel">
+        <div class="log-entry" style="color:#58a6ff;">Tab clicks will appear here...</div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script>
+        var logPanel = document.getElementById('log-panel');
+
+        function addLog(msg) {
+            var entry = document.createElement('div');
+            entry.className = 'log-entry';
+            var ts = new Date().toLocaleTimeString();
+            entry.textContent = '[' + ts + '] ' + msg;
+            logPanel.appendChild(entry);
+            logPanel.scrollTop = logPanel.scrollHeight;
+        }
+
+        fetch('.css').then(function (r) { return r.text(); }).then(function (css) {
+            document.getElementById('widget-css').textContent = css;
+        });
+
+        Promise.all([
+            fetch('.html').then(function (r) { return r.text(); }),
+            fetch('.js').then(function (r) { return r.text(); })
+        ]).then(function (results) {
+            var html = results[0];
+            var jsCode = results[1];
+
+            document.querySelectorAll('.test-cell').forEach(function (cell) {
+                cell.innerHTML = html;
+                var activeState = cell.dataset.active || 'energy_prod';
+                runWidget(cell, activeState, jsCode);
+            });
+
+            var rW = document.getElementById('rW');
+            var rH = document.getElementById('rH');
+            var vW = document.getElementById('vW');
+            var vH = document.getElementById('vH');
+            var customCell = document.getElementById('custom-cell');
+
+            function updateSize() {
+                customCell.style.width = rW.value + 'px';
+                customCell.style.height = rH.value + 'px';
+                vW.textContent = rW.value + 'px';
+                vH.textContent = rH.value + 'px';
+                if (customCell._resizeFn) customCell._resizeFn();
+            }
+            rW.addEventListener('input', updateSize);
+            rH.addEventListener('input', updateSize);
+        });
+
+        function runWidget(cell, activeState, jsCode) {
+            var $cell = $(cell);
+            var currentState = activeState;
+
+            var mockSelf = {};
+            mockSelf.ctx = {
+                $container: $cell,
+                stateController: {
+                    getStateId: function () { return currentState; },
+                    getStateParams: function () { return {}; },
+                    updateState: function (stateId) {
+                        currentState = stateId;
+                        addLog('stateController → "' + stateId + '"');
+                    }
+                },
+                actionsApi: {
+                    handleWidgetAction: function (event, descriptor) {
+                        currentState = descriptor.targetDashboardStateId;
+                        addLog('navigate → "' + descriptor.targetDashboardStateId + '"');
+                    }
+                }
+            };
+
+            try {
+                var fn = new Function('self', jsCode);
+                fn(mockSelf);
+            } catch (e) {
+                console.error('Widget JS error:', e);
+                addLog('ERROR: ' + e.message);
+            }
+
+            cell._resizeFn = function () {
+                if (mockSelf.onResize) mockSelf.onResize();
+            };
+
+            $(window).on('resize', function () {
+                if (mockSelf.onResize) mockSelf.onResize();
+            });
+        }
+    </script>
+
+</body>
+
+</html>
