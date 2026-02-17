@@ -1,0 +1,59 @@
+[
+  {
+    "id": "widgetTitle",
+    "name": "Widget Title",
+    "type": "text",
+    "default": "DEBT SERVICE PANEL"
+  },
+  {
+    "id": "dscrLabel",
+    "name": "DSCR Label",
+    "type": "text",
+    "default": "CURRENT DSCR:",
+    "helpText": "Label shown next to the DSCR value."
+  },
+  {
+    "id": "currency",
+    "name": "Currency Symbol",
+    "type": "text",
+    "default": "LKR"
+  },
+  {
+    "id": "dscrDecimals",
+    "name": "DSCR Decimal Places",
+    "type": "number",
+    "default": 2,
+    "min": 0,
+    "step": 1,
+    "helpText": "Number of decimal places for DSCR and covenant values."
+  },
+  {
+    "id": "serviceDecimals",
+    "name": "Debt Service Decimal Places",
+    "type": "number",
+    "default": 1,
+    "min": 0,
+    "step": 1,
+    "helpText": "Number of decimal places for the annual debt service value."
+  },
+  {
+    "id": "autoScale",
+    "name": "Auto-Scale Debt Service",
+    "type": "switch",
+    "default": true,
+    "helpText": "Automatically abbreviate large values (K, M, B) for readability."
+  },
+  {
+    "id": "tooltipText",
+    "name": "Tooltip Content",
+    "type": "text",
+    "helpText": "Hover tooltip text. Leave empty to hide.",
+    "default": "Debt Service Coverage Ratio (DSCR) measures cash flow available to pay debt. A ratio > 1.30 is usually required by lenders."
+  },
+  {
+    "id": "accentColor",
+    "name": "Custom Accent Color (Optional)",
+    "type": "text",
+    "helpText": "Override theme accent color, e.g. #FF6B35. Leave empty for default cyan."
+  }
+]
