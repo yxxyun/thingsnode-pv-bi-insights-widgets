@@ -1,0 +1,71 @@
+[
+  {
+    "id": "cardMode",
+    "name": "Widget Mode",
+    "type": "select",
+    "default": "grid",
+    "items": [
+      { "value": "grid", "label": "Grid Availability Impact Loss" },
+      { "value": "curtail", "label": "Curtailment Loss" },
+      { "value": "revenue", "label": "Revenue Loss (Potential)" },
+      { "value": "insurance", "label": "Insurance Claimable Loss" }
+    ],
+    "helpText": "Selects the loss type. Each mode sets its own accent color, icon, and default labels."
+  },
+  {
+    "id": "customTitle",
+    "name": "Override Title",
+    "type": "text",
+    "default": "",
+    "helpText": "Leave empty to use the mode's default title."
+  },
+  {
+    "id": "customSub",
+    "name": "Override Subtitle",
+    "type": "text",
+    "default": "",
+    "helpText": "Leave empty to use the mode's default subtitle."
+  },
+  {
+    "id": "currencySym",
+    "name": "Currency Symbol (Revenue / Insurance)",
+    "type": "text",
+    "default": "LKR",
+    "helpText": "Currency prefix for financial modes."
+  },
+  {
+    "id": "energyUnit",
+    "name": "Energy Unit (Grid / Curtailment)",
+    "type": "text",
+    "default": "MWh",
+    "helpText": "Unit suffix for energy modes."
+  },
+  {
+    "id": "decimals",
+    "name": "Decimal Places",
+    "type": "number",
+    "default": 1,
+    "min": 0,
+    "max": 5,
+    "step": 1
+  },
+  {
+    "id": "severityMedium",
+    "name": "Severity: Medium Threshold",
+    "type": "number",
+    "helpText": "Value at or above this is 'MODERATE'. Defaults: 100 for energy modes, 50000 for financial modes."
+  },
+  {
+    "id": "severityHigh",
+    "name": "Severity: High Threshold",
+    "type": "number",
+    "helpText": "Value at or above this is 'HIGH'. Defaults: 500 for energy modes, 200000 for financial modes."
+  },
+  {
+    "id": "tooltipText",
+    "name": "Tooltip Content (Override)",
+    "type": "text",
+    "default": "",
+    "helpText": "Override the dynamic tooltip. Leave empty for context-aware tooltip."
+  }
+]

@@ -1,0 +1,309 @@
+/* ════════════════════════════════════════════════════
+   Loss Attribution Card
+   ThingsBoard v4.3.0 PE | Latest Values
+   Multi-mode: grid · curtail · revenue · insurance
+   Dynamic scaling — all sizes in em
+   ════════════════════════════════════════════════════ */
+
+/* ─────────────────────────────
+   ROOT & SHARED TOKENS
+   ───────────────────────────── */
+.loss-card {
+    /* Mode accent (overridden per mode below) */
+    --c-mode: #06F5FF;
+    --c-mode-glow: rgba(6, 245, 255, 0.12);
+    --c-mode-border: rgba(6, 245, 255, 0.4);
+    --c-mode-hover: rgba(6, 245, 255, 0.7);
+    --c-mode-glow-hover: rgba(6, 245, 255, 0.22);
+
+    /* Background */
+    --c-bg: linear-gradient(180deg, rgba(2, 10, 67, 0.95) 0%, rgba(5, 20, 50, 0.95) 100%);
+
+    /* Text hierarchy */
+    --c-text: #FFFFFF;
+    --c-text-dim: #B0BEC5;
+    --c-text-muted: #90A4AE;
+
+    /* Status semantics */
+    --c-good: #66BB6A;
+    --c-warning: #FFC107;
+    --c-critical: #FF5252;
+
+    /* Surfaces */
+    --c-tooltip-bg: rgba(202, 218, 221, 0.92);
+
+    /* ─── Layout: Absolute fill ─── */
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+
+    background: var(--c-bg);
+    border: 1px solid var(--c-mode-border);
+    box-shadow: 0 0 12px var(--c-mode-glow), inset 0 0 15px rgba(0, 0, 0, 0.4);
+    border-radius: 8px;
+    padding: 0.5em 0.7em 0.4em;
+    box-sizing: border-box;
+    overflow: hidden;
+    z-index: 1;
+
+    font-family: 'Roboto', sans-serif;
+    color: var(--c-text);
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* ─── Hover Glow (uses mode accent) ─── */
+.loss-card:hover {
+    border-color: var(--c-mode-hover);
+    box-shadow: 0 0 22px var(--c-mode-glow-hover), inset 0 0 8px rgba(0, 0, 0, 0.2);
+}
+
+/* ═════════════════════════════
+   MODE ACCENT PALETTES
+   ═════════════════════════════ */
+
+/* Grid Availability — Amber */
+.loss-card.mode-grid {
+    --c-mode: #FFCA28;
+    --c-mode-glow: rgba(255, 202, 40, 0.12);
+    --c-mode-border: rgba(255, 202, 40, 0.35);
+    --c-mode-hover: rgba(255, 202, 40, 0.65);
+    --c-mode-glow-hover: rgba(255, 202, 40, 0.22);
+}
+
+/* Curtailment — Red */
+.loss-card.mode-curtail {
+    --c-mode: #EF5350;
+    --c-mode-glow: rgba(239, 83, 80, 0.12);
+    --c-mode-border: rgba(239, 83, 80, 0.35);
+    --c-mode-hover: rgba(239, 83, 80, 0.65);
+    --c-mode-glow-hover: rgba(239, 83, 80, 0.22);
+}
+
+/* Revenue Loss — Coral-Red */
+.loss-card.mode-revenue {
+    --c-mode: #FF7043;
+    --c-mode-glow: rgba(255, 112, 67, 0.12);
+    --c-mode-border: rgba(255, 112, 67, 0.35);
+    --c-mode-hover: rgba(255, 112, 67, 0.65);
+    --c-mode-glow-hover: rgba(255, 112, 67, 0.22);
+}
+
+/* Insurance Claimable — Blue */
+.loss-card.mode-insurance {
+    --c-mode: #42A5F5;
+    --c-mode-glow: rgba(66, 165, 245, 0.12);
+    --c-mode-border: rgba(66, 165, 245, 0.35);
+    --c-mode-hover: rgba(66, 165, 245, 0.65);
+    --c-mode-glow-hover: rgba(66, 165, 245, 0.22);
+}
+
+/* ─────────────────────────────
+   HEADER
+   ───────────────────────────── */
+.card-header {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    z-index: 2;
+    line-height: 1;
+    margin-bottom: 0.15em;
+    min-height: 0;
+}
+
+.card-title {
+    font-size: 0.65em;
+    font-weight: 700;
+    color: var(--c-text);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+    min-width: 0;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 0.2em;
+    flex-shrink: 0;
+    padding-left: 0.4em;
+}
+
+/* ─── Status Badge ─── */
+.status-dot {
+    width: 0.35em;
+    height: 0.35em;
+    border-radius: 50%;
+    background-color: var(--c-text-muted);
+    display: inline-block;
+    transition: background-color 0.4s ease, box-shadow 0.4s ease;
+}
+
+.status-dot.sev-low {
+    background-color: var(--c-good);
+    box-shadow: 0 0 5px rgba(102, 187, 106, 0.6);
+}
+
+.status-dot.sev-moderate {
+    background-color: var(--c-warning);
+    box-shadow: 0 0 5px rgba(255, 193, 7, 0.6);
+}
+
+.status-dot.sev-high {
+    background-color: var(--c-critical);
+    box-shadow: 0 0 5px rgba(255, 82, 82, 0.6);
+    animation: pulse-critical 1.8s infinite;
+}
+
+.status-text {
+    font-size: 0.38em;
+    font-weight: 600;
+    color: var(--c-text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+}
+
+/* ─── Mode Icon ─── */
+.card-icon {
+    width: 1.2em;
+    height: 1.2em;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--c-mode);
+    opacity: 0.8;
+    transition: opacity 0.3s ease;
+}
+
+.loss-card:hover .card-icon {
+    opacity: 1;
+}
+
+.card-icon svg {
+    width: 100%;
+    height: 100%;
+    fill: currentColor;
+}
+
+/* ─────────────────────────────
+   BODY
+   ───────────────────────────── */
+.card-body {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    z-index: 2;
+    min-height: 0;
+}
+
+.main-value {
+    font-size: 1.8em;
+    font-weight: 700;
+    color: var(--c-mode);
+    white-space: nowrap;
+    line-height: 1.1;
+    text-shadow: 0 0 12px var(--c-mode-glow);
+    transition: color 0.3s ease;
+}
+
+.sub-text {
+    font-size: 0.5em;
+    color: var(--c-text-muted);
+    font-weight: 400;
+    margin-top: 0.2em;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ─────────────────────────────
+   FOOTER
+   ───────────────────────────── */
+.card-footer {
+    flex: 0 0 auto;
+    z-index: 2;
+    margin-top: 0.1em;
+    padding-top: 0.1em;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    min-height: 0;
+}
+
+.footer-label {
+    font-size: 0.42em;
+    font-weight: 500;
+    color: var(--c-text-dim);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    opacity: 0.7;
+}
+
+/* ─────────────────────────────
+   TOOLTIP — Glassmorphism
+   ───────────────────────────── */
+.tooltip-container {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 0.4em 0.6em;
+    background-color: var(--c-tooltip-bg);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    transform: translateY(100%);
+    opacity: 0;
+    transition: all 0.3s ease;
+    z-index: 10;
+    pointer-events: none;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+}
+
+.loss-card:hover .tooltip-container {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.tooltip-content {
+    font-size: 0.5em;
+    color: #1a1a2e;
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+/* ─────────────────────────────
+   LOADING SKELETON
+   ───────────────────────────── */
+.skeleton {
+    opacity: 0.5;
+    animation: pulse-load 1.5s infinite;
+}
+
+@keyframes pulse-load {
+    0% { opacity: 0.3; }
+    50% { opacity: 0.6; }
+    100% { opacity: 0.3; }
+}
+
+@keyframes pulse-critical {
+    0% { box-shadow: 0 0 4px rgba(255, 82, 82, 0.6); }
+    50% { box-shadow: 0 0 10px rgba(255, 82, 82, 0.9); }
+    100% { box-shadow: 0 0 4px rgba(255, 82, 82, 0.6); }
+}
