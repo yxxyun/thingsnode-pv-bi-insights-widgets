@@ -1,0 +1,83 @@
+<div class="header-container">
+    <div class="title-section">
+        SOLAR PV PLANT MONITORING - PORTFOLIO INTELLIGENCE OVERVIEW
+    </div>
+
+    <div class="time-section">
+        <span id="date-display">Loading...</span>
+        <span class="separator">|</span>
+        <span id="time-display">--:--:--</span>
+        <span class="timezone">(UTC+05:30)</span>
+    </div>
+</div>
+
+<script>
+    (function () {
+        // --- CLOCK (original working approach) ---
+        function updateClock() {
+            var now = new Date();
+
+            var dateStr =
+                now.getFullYear() + '-' +
+                String(now.getMonth() + 1).padStart(2, '0') + '-' +
+                String(now.getDate()).padStart(2, '0');
+
+            var timeStr =
+                String(now.getHours()).padStart(2, '0') + ':' +
+                String(now.getMinutes()).padStart(2, '0') + ':' +
+                String(now.getSeconds()).padStart(2, '0');
+
+            var dateEl = document.getElementById('date-display');
+            var timeEl = document.getElementById('time-display');
+
+            if (dateEl) dateEl.innerText = dateStr;
+            if (timeEl) timeEl.innerText = timeStr;
+        }
+
+        // --- SCALING ---
+        function updateScale() {
+            var header = document.querySelector('.header-container');
+            if (!header) return;
+
+            var w = header.offsetWidth;
+            var h = header.offsetHeight;
+            if (!w || !h) return;
+
+            var titleEl = header.querySelector('.title-section');
+            var timeSecEl = header.querySelector('.time-section');
+
+            // 1. Probe at 16px to measure real content widths
+            var PROBE = 16;
+            header.style.fontSize = PROBE + 'px';
+
+            // 2. Measure actual content widths
+            var titleW = titleEl ? titleEl.scrollWidth : 0;
+            var timeW = timeSecEl ? timeSecEl.scrollWidth : 0;
+            var contentW = titleW + timeW + (3 * PROBE);
+
+            // 3. Scale from width
+            var fromWidth = (w / contentW) * PROBE;
+
+            // 4. Scale from height
+            var fromHeight = h / 2.2;
+
+            var fontSize = Math.min(fromWidth, fromHeight);
+            if (fontSize < 5) fontSize = 5;
+            if (fontSize > 28) fontSize = 28;
+
+            header.style.fontSize = fontSize + 'px';
+        }
+
+        // --- INIT ---
+        updateClock();
+        updateScale();
+        setInterval(updateClock, 1000);
+
+        // Handle ThingsBoard widget resizes
+        var header = document.querySelector('.header-container');
+        if (header && typeof ResizeObserver !== 'undefined') {
+            new ResizeObserver(updateScale).observe(header);
+        }
+        window.addEventListener('resize', updateScale);
+    })();
+</script>   
