@@ -1,0 +1,274 @@
+/* ========================================
+   Portfolio Intelligence Card
+   ThingsBoard v4.3.0 PE | Latest Values
+   Dynamic scaling — all sizes in em
+   ======================================== */
+.portfolio-card {
+    /* --- COLOR TOKENS --- */
+    --c-cyan: #06F5FF;
+    --c-cyan-glow: rgba(6, 245, 255, 0.15);
+    --c-cyan-border: rgba(6, 245, 255, 0.55);
+    --c-amber: #FFC107;
+    --c-amber-glow: rgba(255, 193, 7, 0.15);
+    --c-amber-border: rgba(255, 193, 7, 0.4);
+    --c-green: #66BB6A;
+    --c-red: #FF5252;
+    --c-text: #FFFFFF;
+    --c-text-dim: #B0BEC5;
+    --c-bg: linear-gradient(180deg, rgba(2, 10, 67, 0.95) 0%, rgba(5, 20, 50, 0.95) 100%);
+    --c-tooltip-bg: rgba(202, 218, 221, 0.9);
+
+    /* --- LAYOUT: Absolute fill --- */
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: center;
+
+    background: var(--c-bg);
+    border: 1px solid var(--c-cyan-border);
+    box-shadow: 0 0 12px var(--c-cyan-glow), inset 0 0 15px rgba(0, 0, 0, 0.4);
+    border-radius: 8px;
+    padding: 0.5em 0.7em;
+    box-sizing: border-box;
+    overflow: hidden;
+    z-index: 1;
+
+    font-family: 'Roboto', sans-serif;
+    color: var(--c-text);
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* --- HOVER GLOW --- */
+.portfolio-card:hover {
+    border-color: rgba(6, 245, 255, 0.8);
+    box-shadow: 0 0 22px rgba(6, 245, 255, 0.25), inset 0 0 8px rgba(0, 0, 0, 0.2);
+}
+
+/* --- RISK MODE --- */
+.portfolio-card.mode-risk {
+    border-color: var(--c-amber-border);
+    box-shadow: 0 0 12px var(--c-amber-glow), inset 0 0 15px rgba(0, 0, 0, 0.4);
+}
+
+.portfolio-card.mode-risk:hover {
+    border-color: rgba(255, 193, 7, 0.8);
+    box-shadow: 0 0 22px rgba(255, 193, 7, 0.25), inset 0 0 8px rgba(0, 0, 0, 0.2);
+}
+
+/* ===================
+   HEADER
+   =================== */
+.card-header {
+    flex: 0 0 auto;
+    z-index: 2;
+    line-height: 1.1;
+}
+
+.card-title {
+    font-size: 0.7em;
+    font-weight: 700;
+    color: var(--c-text);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ===================
+   CONTENT
+   =================== */
+.card-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    z-index: 2;
+    min-height: 0;
+}
+
+/* --- Value Row --- */
+.value-row {
+    display: flex;
+    align-items: baseline;
+    gap: 0.1em;
+}
+
+.main-value {
+    font-size: 2em;
+    font-weight: 700;
+    color: var(--c-text);
+    line-height: 1;
+    text-shadow: 0 0 8px rgba(6, 245, 255, 0.3);
+}
+
+.unit {
+    font-size: 0.9em;
+    font-weight: 600;
+    color: var(--c-cyan);
+    opacity: 0.9;
+}
+
+.portfolio-card.mode-risk .unit {
+    color: var(--c-amber);
+}
+
+/* --- Sub-Content --- */
+.sub-content {
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    line-height: 1.2;
+}
+
+/* Delta */
+.delta-container {
+    display: none;
+    align-items: center;
+    font-size: 0.65em;
+    font-weight: 600;
+    color: var(--c-green);
+}
+
+.delta-container.negative {
+    color: var(--c-red);
+}
+
+.delta-arrow {
+    margin-right: 0.2em;
+    font-size: 0.85em;
+}
+
+.delta-label {
+    color: var(--c-text-dim);
+    margin-left: 0.3em;
+    font-weight: 400;
+}
+
+/* Exposure */
+.exposure-container {
+    display: none;
+    align-items: center;
+    color: var(--c-amber);
+    font-size: 0.7em;
+    font-weight: 600;
+}
+
+.exposure-icon {
+    margin-right: 0.3em;
+    font-size: 1.1em;
+}
+
+/* Diversity Bar */
+.diversity-container {
+    width: 100%;
+    display: none;
+    flex-direction: column;
+}
+
+.bar-bg {
+    width: 100%;
+    height: 0.6em;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 0.5em;
+    overflow: hidden;
+    position: relative;
+}
+
+.bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #66BB6A 0%, #43A047 100%);
+    width: 0%;
+    transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.5em;
+}
+
+.bar-text {
+    font-size: 0.4em;
+    color: #000;
+    font-weight: 700;
+    white-space: nowrap;
+    text-transform: uppercase;
+}
+
+.optimal-range {
+    font-size: 0.55em;
+    color: var(--c-text-dim);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 0.15em;
+}
+
+.check-icon {
+    color: var(--c-green);
+    margin-right: 0.2em;
+    font-weight: bold;
+}
+
+/* ===================
+   TOOLTIP
+   =================== */
+.tooltip-container {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 0.4em 0.6em;
+    background-color: var(--c-tooltip-bg);
+    backdrop-filter: blur(4px);
+    transform: translateY(100%);
+    opacity: 0;
+    transition: all 0.3s ease;
+    z-index: 10;
+    pointer-events: none;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+}
+
+.portfolio-card:hover .tooltip-container {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.tooltip-text {
+    font-size: 0.6em;
+    color: #000;
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+/* ===================
+   LOADING SKELETON
+   =================== */
+.skeleton {
+    opacity: 0.5;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        opacity: 0.3;
+    }
+
+    50% {
+        opacity: 0.6;
+    }
+
+    100% {
+        opacity: 0.3;
+    }
+}

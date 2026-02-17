@@ -1,0 +1,68 @@
+[
+  {
+    "id": "cardMode",
+    "name": "Widget Mode",
+    "type": "select",
+    "items": [
+      {
+        "value": "standard",
+        "label": "Standard (Energy/Revenue)"
+      },
+      {
+        "value": "risk",
+        "label": "Risk Monitor"
+      },
+      {
+        "value": "diversity",
+        "label": "Diversification Index"
+      }
+    ]
+  },
+  {
+    "id": "cardTitle",
+    "name": "Card Title",
+    "type": "text",
+    "default": "Metric Name"
+  },
+  {
+    "id": "unit",
+    "name": "Unit (e.g. GWh, USD)",
+    "type": "text"
+  },
+  {
+    "id": "divider",
+    "name": "Value Divider",
+    "type": "number",
+    "default": 1
+  },
+  {
+    "id": "decimals",
+    "name": "Decimals",
+    "type": "number",
+    "default": 1
+  },
+  {
+    "id": "deltaLabel",
+    "name": "Delta Label (Standard Mode)",
+    "type": "text",
+    "default": "vs Target"
+  },
+  {
+    "id": "riskLabel",
+    "name": "Risk Subtitle (Risk Mode)",
+    "type": "text",
+    "default": "Exposure"
+  },
+  {
+    "id": "rangeLabel",
+    "name": "Range Text (Diversity Mode)",
+    "type": "text",
+    "default": "Optimal Range: >0.7"
+  },
+  {
+    "id": "tooltipText",
+    "name": "Tooltip Content",
+    "type": "text",
+    "default": "Description of the metric."
+  }
+]
