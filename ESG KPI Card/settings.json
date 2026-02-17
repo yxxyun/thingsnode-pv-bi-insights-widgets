@@ -1,0 +1,119 @@
+[
+  {
+    "id": "cardMode",
+    "name": "ESG Mode",
+    "type": "select",
+    "default": "carbon",
+    "items": [
+      {
+        "value": "carbon",
+        "label": "Carbon Offset (CO₂)"
+      },
+      {
+        "value": "water",
+        "label": "Water Saved"
+      },
+      {
+        "value": "waste",
+        "label": "Waste Diverted"
+      },
+      {
+        "value": "renewable",
+        "label": "Renewable Share (%)"
+      },
+      {
+        "value": "custom",
+        "label": "Custom Metric"
+      }
+    ]
+  },
+  {
+    "id": "cardTitle",
+    "name": "Override Title (Optional)",
+    "type": "text"
+  },
+  {
+    "id": "subtitle",
+    "name": "Override Subtitle (Optional)",
+    "type": "text"
+  },
+  {
+    "id": "unit",
+    "name": "Override Unit (Optional)",
+    "type": "text",
+    "helpText": "Leave empty to use mode default. Supports CO₂ subscript."
+  },
+  {
+    "id": "divider",
+    "name": "Input Value Divider",
+    "type": "number",
+    "default": 1,
+    "helpText": "Divide raw telemetry value by this number before display."
+  },
+  {
+    "id": "decimals",
+    "name": "Decimal Places",
+    "type": "number",
+    "default": 1,
+    "min": 0,
+    "step": 1
+  },
+  {
+    "id": "autoScale",
+    "name": "Auto-Scale Units",
+    "type": "switch",
+    "default": true,
+    "helpText": "Automatically scale units (e.g. kg→t→kt, L→kL→ML) based on value magnitude."
+  },
+  {
+    "id": "showDelta",
+    "name": "Show Delta vs Target",
+    "type": "switch",
+    "default": true,
+    "helpText": "Show ▲/▼ percentage change vs a target (2nd data series)."
+  },
+  {
+    "id": "deltaLabel",
+    "name": "Delta Label",
+    "type": "text",
+    "default": "vs Target"
+  },
+  {
+    "id": "showStatus",
+    "name": "Show Status Badge",
+    "type": "switch",
+    "default": true,
+    "helpText": "Show a threshold-based status indicator (On Track / Warning / Critical)."
+  },
+  {
+    "id": "thresholdWarning",
+    "name": "Warning Threshold",
+    "type": "number",
+    "helpText": "Value below (or above if inverted) which status becomes Warning. Leave empty for mode default."
+  },
+  {
+    "id": "thresholdCritical",
+    "name": "Critical Threshold",
+    "type": "number",
+    "helpText": "Value below (or above if inverted) which status becomes Critical. Leave empty for mode default."
+  },
+  {
+    "id": "thresholdInvert",
+    "name": "Invert Threshold Logic",
+    "type": "switch",
+    "default": false,
+    "helpText": "When ON, lower values are better (e.g. emissions). When OFF, higher values are better (e.g. renewable %)."
+  },
+  {
+    "id": "tooltipText",
+    "name": "Tooltip Content",
+    "type": "text",
+    "helpText": "Hover tooltip text. Leave empty to use mode default."
+  },
+  {
+    "id": "accentColor",
+    "name": "Custom Accent Color (Optional)",
+    "type": "text",
+    "helpText": "Override mode theme color, e.g. #FF6B35. Leave empty for automatic."
+  }
+]
