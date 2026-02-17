@@ -1,0 +1,91 @@
+[
+  {
+    "id": "cardTitle",
+    "name": "Card Title",
+    "type": "text",
+    "default": "Metric Name",
+    "helpText": "Header title displayed in uppercase."
+  },
+  {
+    "id": "currencySym",
+    "name": "Currency Symbol",
+    "type": "text",
+    "default": "LKR",
+    "helpText": "Currency prefix shown before the main value."
+  },
+  {
+    "id": "mainUnit",
+    "name": "Main Unit Suffix",
+    "type": "text",
+    "default": "",
+    "helpText": "Unit suffix after the value (e.g. M, K). Leave empty if using auto-scaling."
+  },
+  {
+    "id": "divider",
+    "name": "Value Divider",
+    "type": "number",
+    "default": 1,
+    "helpText": "Divide raw value by this before display (e.g. 1000000 to convert to millions)."
+  },
+  {
+    "id": "decimals",
+    "name": "Decimal Places",
+    "type": "number",
+    "default": 1,
+    "helpText": "Number of decimal places for the main value."
+  },
+  {
+    "id": "enableAutoScale",
+    "name": "Auto-Scale Values (K/M/B)?",
+    "type": "switch",
+    "default": false,
+    "helpText": "Automatically format large values with K/M/B suffixes. Overrides Main Unit if enabled."
+  },
+  {
+    "id": "deltaLabel",
+    "name": "Delta Label",
+    "type": "text",
+    "default": "vs Target",
+    "helpText": "Label shown after the delta percentage (e.g. 'vs Target', 'vs Last Year')."
+  },
+  {
+    "id": "invertDelta",
+    "name": "Invert Delta Colors?",
+    "type": "switch",
+    "default": false,
+    "helpText": "Enable if a positive delta is bad (e.g. for cost metrics where lower is better)."
+  },
+  {
+    "id": "footerText",
+    "name": "Footer Text",
+    "type": "text",
+    "default": "",
+    "helpText": "Static footer label. Leave empty to show auto-generated sub-value context."
+  },
+  {
+    "id": "severityMedium",
+    "name": "Severity: Medium Threshold",
+    "type": "number",
+    "helpText": "Raw value at or above this triggers MODERATE severity badge. Leave empty to disable."
+  },
+  {
+    "id": "severityHigh",
+    "name": "Severity: High Threshold",
+    "type": "number",
+    "helpText": "Raw value at or above this triggers HIGH severity badge. Leave empty to disable."
+  },
+  {
+    "id": "tooltipText",
+    "name": "Tooltip Content (Override)",
+    "type": "text",
+    "default": "",
+    "helpText": "Override the dynamic tooltip. Leave empty for auto-generated context."
+  },
+  {
+    "id": "useComplianceBadge",
+    "name": "Use Compliance Badge?",
+    "type": "switch",
+    "default": false,
+    "helpText": "Reserved for future compliance badge integration."
+  }
+]
