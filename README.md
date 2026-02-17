@@ -1,6 +1,17 @@
-﻿# MAGICBIT Widgets
+﻿# ThingsNode SCADA BI Insights Widgets
 
-Custom ThingsBoard widgets for solar portfolio monitoring, risk analytics, financial KPIs, and operational compliance.
+Custom ThingsBoard widgets built for ThingsNode's SCADA platform for PV plants, focused on Business Intelligence and stakeholder-facing insights.
+
+## Dashboard Scope
+
+These widgets were designed for a six-tab BI dashboard aimed at asset owners and investors:
+
+- Forecast and Risk
+- Financials
+- ESG and Carbon
+- Grid and Losses
+- Portfolio
+- Energy Production
 
 ## Purpose
 
