@@ -1,0 +1,14 @@
+[
+  {
+    "id": "widgetTitle",
+    "name": "Widget Title",
+    "type": "text",
+    "default": "Portfolio Compliance Summary"
+  },
+  {
+    "id": "currency",
+    "name": "Currency Symbol",
+    "type": "text",
+    "default": "LKR"
+  }
+]

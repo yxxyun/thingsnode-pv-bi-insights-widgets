@@ -1,0 +1,170 @@
+/* ========================================
+   Portfolio Compliance Summary Table
+   ThingsBoard v4.3.0 PE | Latest Values
+   Dynamic scaling — all sizes in em
+   ======================================== */
+.compliance-card {
+    /* --- COLOR TOKENS --- */
+    --c-bg: rgba(2, 10, 67, 0.95);
+    --c-text: #FFFFFF;
+    --c-text-dim: #B0BEC5;
+    --c-healthy: #66BB6A;
+    --c-warning: #FFC107;
+    --c-risk: #FF5252;
+    --c-row-hover: rgba(6, 245, 255, 0.05);
+    --c-row-highlight: rgba(255, 193, 7, 0.15);
+
+    /* --- LAYOUT: Absolute fill --- */
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+
+    display: flex;
+    flex-direction: column;
+
+    background-color: var(--c-bg);
+    border-radius: 0.5em;
+    padding: 0.6em;
+    box-sizing: border-box;
+    font-family: 'Roboto', sans-serif;
+    color: var(--c-text);
+    border: 1px solid rgba(6, 245, 255, 0.3);
+    box-shadow: 0 0 0.8em rgba(6, 245, 255, 0.05);
+    overflow: hidden;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.compliance-card:hover {
+    border-color: rgba(6, 245, 255, 0.5);
+    box-shadow: 0 0 1.2em rgba(6, 245, 255, 0.12);
+}
+
+/* ===================
+   HEADER
+   =================== */
+.table-header {
+    flex: 0 0 auto;
+    margin-bottom: 0.4em;
+}
+
+.table-title {
+    font-size: 1em;
+    font-weight: 700;
+    color: var(--c-text);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ===================
+   TABLE
+   =================== */
+.table-container {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    width: 100%;
+    min-height: 0;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th {
+    text-align: left;
+    color: var(--c-text-dim);
+    font-weight: 600;
+    font-size: 0.78em;
+    padding: 0.4em 0.5em;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    position: sticky;
+    top: 0;
+    background-color: var(--c-bg);
+    z-index: 10;
+    white-space: nowrap;
+}
+
+td {
+    padding: 0.5em;
+    color: var(--c-text);
+    font-size: 0.72em;
+    font-weight: 400;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* --- Row Styles --- */
+tr {
+    transition: background-color 0.2s ease;
+}
+
+tr:hover {
+    background-color: var(--c-row-hover);
+}
+
+tr.row-warning {
+    background-color: var(--c-row-highlight);
+    border-left: 0.2em solid var(--c-warning);
+}
+
+/* --- Column Alignments --- */
+.col-right {
+    text-align: right;
+}
+
+.col-center {
+    text-align: center;
+}
+
+/* --- Status Colors --- */
+.text-healthy {
+    color: var(--c-healthy);
+    font-weight: 500;
+}
+
+.text-warning {
+    color: var(--c-warning);
+    font-weight: 600;
+}
+
+.text-risk {
+    color: var(--c-risk);
+    font-weight: 700;
+}
+
+/* ===================
+   FOOTER
+   =================== */
+.table-footer {
+    flex: 0 0 auto;
+    margin-top: 0.4em;
+    padding-top: 0.4em;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.7em;
+    color: var(--c-text-dim);
+    white-space: nowrap;
+}
+
+.footer-val {
+    color: var(--c-text);
+    font-weight: 700;
+    margin-left: 0.25em;
+}
+
+.footer-status {
+    text-transform: uppercase;
+}
