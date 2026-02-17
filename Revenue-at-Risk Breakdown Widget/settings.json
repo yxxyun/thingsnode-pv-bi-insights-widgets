@@ -1,0 +1,114 @@
+[
+    {
+        "id": "cardTitle",
+        "name": "Card Title",
+        "type": "text",
+        "default": "Revenue-at-Risk Breakdown"
+    },
+    {
+        "id": "currency",
+        "name": "Currency Symbol",
+        "type": "text",
+        "default": "$"
+    },
+    {
+        "id": "unit",
+        "name": "Unit Suffix",
+        "type": "text",
+        "default": "k"
+    },
+    {
+        "id": "displayUnit",
+        "name": "Display Unit Suffix (e.g. M, K)",
+        "type": "text",
+        "default": "M"
+    },
+    {
+        "id": "footerLabel",
+        "name": "Footer Label",
+        "type": "text",
+        "default": "Potential Revenue Impact · All Categories"
+    },
+    {
+        "id": "tooltipText",
+        "name": "Tooltip (blank = auto-generate)",
+        "type": "text",
+        "default": ""
+    },
+    {
+        "id": "timeHorizon",
+        "name": "Time Horizon Label",
+        "type": "text",
+        "default": "Annual Forecast"
+    },
+    {
+        "id": "resolution",
+        "name": "Resolution Level",
+        "type": "text",
+        "default": "Portfolio"
+    },
+    {
+        "id": "severityMedium",
+        "name": "Severity Medium Threshold",
+        "type": "number",
+        "default": 300
+    },
+    {
+        "id": "severityHigh",
+        "name": "Severity High Threshold",
+        "type": "number",
+        "default": 500
+    },
+    {
+        "id": "section1",
+        "name": "--- Operational Losses ---",
+        "type": "text"
+    },
+    {
+        "id": "val_fault",
+        "name": "Fault / Outage Loss",
+        "type": "number",
+        "default": 125
+    },
+    {
+        "id": "val_curtail",
+        "name": "Curtailment Loss",
+        "type": "number",
+        "default": 210
+    },
+    {
+        "id": "section2",
+        "name": "--- Configuration Losses ---",
+        "type": "text"
+    },
+    {
+        "id": "val_soiling",
+        "name": "Soiling Loss",
+        "type": "number",
+        "default": 85
+    },
+    {
+        "id": "val_degrad",
+        "name": "General Degradation",
+        "type": "number",
+        "default": 40
+    },
+    {
+        "id": "val_lid",
+        "name": "LID Loss (Adds to Degradation)",
+        "type": "number",
+        "default": 0
+    },
+    {
+        "id": "val_mismatch",
+        "name": "Mismatch Loss (Adds to Degradation)",
+        "type": "number",
+        "default": 0
+    },
+    {
+        "id": "val_wiring",
+        "name": "Wiring/Ohmic Loss (New Segment)",
+        "type": "number",
+        "default": 0
+    }
+]
