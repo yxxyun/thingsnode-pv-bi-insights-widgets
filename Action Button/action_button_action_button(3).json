@@ -1,0 +1,155 @@
+{
+  "widget": {
+    "typeFullFqn": "system.action_button",
+    "type": "latest",
+    "sizeX": 3,
+    "sizeY": 1,
+    "config": {
+      "datasources": [
+        {
+          "type": "entity",
+          "entityAliasId": "0392c3ef-783f-056a-37e9-11e8ed6046df",
+          "dataKeys": [],
+          "alarmFilterConfig": {
+            "statusList": [
+              "ACTIVE"
+            ]
+          }
+        }
+      ],
+      "showTitle": false,
+      "backgroundColor": "#020A43BD",
+      "color": "rgba(255, 255, 255, 0.87)",
+      "padding": "0px",
+      "settings": {
+        "activatedState": {
+          "action": "DO_NOTHING",
+          "defaultValue": false,
+          "getAttribute": {
+            "key": "state",
+            "scope": null
+          },
+          "getTimeSeries": {
+            "key": "state"
+          },
+          "dataToValue": {
+            "type": "NONE",
+            "compareToValue": true,
+            "dataToValueFunction": "/* Should return boolean value */\nreturn data;"
+          }
+        },
+        "disabledState": {
+          "action": "DO_NOTHING",
+          "defaultValue": false,
+          "getAttribute": {
+            "key": "state",
+            "scope": null
+          },
+          "getTimeSeries": {
+            "key": "state"
+          },
+          "dataToValue": {
+            "type": "NONE",
+            "compareToValue": true,
+            "dataToValueFunction": "/* Should return boolean value */\nreturn data;"
+          }
+        },
+        "appearance": {
+          "type": "outlined",
+          "showLabel": false,
+          "label": "Button",
+          "showIcon": true,
+          "icon": "home",
+          "iconSize": 50,
+          "iconSizeUnit": "px",
+          "mainColor": "#1373EF",
+          "backgroundColor": "#020A43BE",
+          "autoScale": false,
+          "customStyle": {
+            "enabled": null,
+            "hovered": {
+              "overrideMainColor": true,
+              "mainColor": "#1376F4",
+              "overrideBackgroundColor": true,
+              "backgroundColor": "#00139BD9",
+              "overrideDropShadow": true,
+              "dropShadow": true
+            },
+            "pressed": {
+              "overrideMainColor": true,
+              "mainColor": "#1156B0",
+              "overrideBackgroundColor": true,
+              "backgroundColor": "#00139B81",
+              "overrideDropShadow": true,
+              "dropShadow": true
+            },
+            "activated": null,
+            "disabled": null
+          }
+        }
+      },
+      "title": "Action button",
+      "showTitleIcon": false,
+      "iconColor": "rgba(0, 0, 0, 0.87)",
+      "iconSize": "24px",
+      "titleTooltip": "",
+      "dropShadow": false,
+      "enableFullscreen": false,
+      "enableDataExport": false,
+      "widgetStyle": {},
+      "titleStyle": {
+        "fontSize": "16px",
+        "fontWeight": 400
+      },
+      "showLegend": false,
+      "widgetCss": "",
+      "pageSize": 1024,
+      "noDataDisplayMessage": "",
+      "borderRadius": "6px",
+      "configMode": "advanced",
+      "actions": {
+        "click": [
+          {
+            "id": "263a9f95-6e18-8317-2f74-7194f73569b9",
+            "name": "onClick",
+            "icon": "more_horiz",
+            "type": "updateDashboardState",
+            "targetDashboardStateId": "default",
+            "openRightLayout": false,
+            "setEntityId": true,
+            "stateEntityParamName": null,
+            "openInSeparateDialog": false,
+            "openInPopover": false
+          }
+        ]
+      }
+    },
+    "row": 0,
+    "col": 0,
+    "id": "dd72ffe0-7db6-e6b7-efab-7d626394986f"
+  },
+  "aliasesInfo": {
+    "datasourceAliases": {
+      "0": {
+        "alias": "Inverter",
+        "filter": {
+          "type": "deviceType",
+          "resolveMultiple": true,
+          "deviceTypes": [
+            "Inverter"
+          ],
+          "deviceNameFilter": ""
+        }
+      }
+    },
+    "targetDeviceAlias": null
+  },
+  "filtersInfo": {
+    "datasourceFilters": {}
+  },
+  "originalSize": {
+    "sizeX": 12,
+    "sizeY": 9
+  },
+  "originalColumns": 200
+}
