@@ -1,0 +1,38 @@
+[
+  {
+    "id": "widgetTitle",
+    "name": "Widget Title",
+    "type": "text",
+    "default": "Multi-Site Energy Contribution (YTD)"
+  },
+  {
+    "id": "colorSiteA",
+    "name": "Color: Site A (Bottom Stack)",
+    "type": "text",
+    "default": "#66BB6A"
+  },
+  {
+    "id": "colorSiteB",
+    "name": "Color: Site B",
+    "type": "text",
+    "default": "#06F5FF"
+  },
+  {
+    "id": "colorSiteC",
+    "name": "Color: Site C",
+    "type": "text",
+    "default": "#2979FF"
+  },
+  {
+    "id": "colorSiteD",
+    "name": "Color: Site D",
+    "type": "text",
+    "default": "#AB47BC"
+  },
+  {
+    "id": "colorSiteE",
+    "name": "Color: Site E (Top Stack)",
+    "type": "text",
+    "default": "#FF9800"
+  }
+]

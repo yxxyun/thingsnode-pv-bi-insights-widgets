@@ -1,0 +1,121 @@
+/* ========================================
+   Multi-Site Energy Contribution (YTD)
+   ThingsBoard v4.3.0 PE | Latest Values
+   Dynamic scaling — all sizes in em
+   ======================================== */
+.energy-chart-card {
+    /* --- COLOR TOKENS --- */
+    --c-bg: linear-gradient(180deg, rgba(2, 10, 67, 0.95) 0%, rgba(5, 20, 50, 0.95) 100%);
+    --c-text: #FFFFFF;
+    --c-text-dim: #B0BEC5;
+    --c-border: rgba(6, 245, 255, 0.25);
+    --c-glow: rgba(6, 245, 255, 0.08);
+    --c-grid: rgba(255, 255, 255, 0.08);
+
+    /* Site Colors */
+    --site-a: #66BB6A;
+    --site-b: #06F5FF;
+    --site-c: #2979FF;
+    --site-d: #AB47BC;
+    --site-e: #FF9800;
+
+    /* --- LAYOUT: Absolute fill --- */
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+
+    display: flex;
+    flex-direction: column;
+
+    background: var(--c-bg);
+    border: 1px solid var(--c-border);
+    box-shadow: 0 0 0.8em var(--c-glow), inset 0 0 1em rgba(0, 0, 0, 0.3);
+    border-radius: 0.5em;
+    padding: 0.6em;
+    box-sizing: border-box;
+    font-family: 'Roboto', sans-serif;
+    color: var(--c-text);
+    overflow: hidden;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.energy-chart-card:hover {
+    border-color: rgba(6, 245, 255, 0.55);
+    box-shadow: 0 0 1.4em rgba(6, 245, 255, 0.15), inset 0 0 0.6em rgba(0, 0, 0, 0.2);
+}
+
+/* ===================
+   HEADER
+   =================== */
+.chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex: 0 0 auto;
+    margin-bottom: 0.3em;
+    padding: 0 0.15em;
+}
+
+.chart-title {
+    font-size: 1em;
+    font-weight: 700;
+    color: var(--c-text);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.chart-total {
+    font-size: 0.7em;
+    color: var(--c-text-dim);
+    font-weight: 500;
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin-left: 0.5em;
+}
+
+.chart-total .total-value {
+    color: var(--c-text);
+    font-weight: 700;
+}
+
+/* ===================
+   CHART AREA
+   =================== */
+.chart-container {
+    flex: 1;
+    position: relative;
+    width: 100%;
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* ===================
+   CHARTJS TOOLTIP OVERRIDE
+   =================== */
+.chartjs-tooltip {
+    opacity: 1;
+    position: absolute;
+    background: rgba(2, 10, 67, 0.95);
+    color: #FFFFFF;
+    border: 1px solid rgba(6, 245, 255, 0.4);
+    border-radius: 0.3em;
+    pointer-events: none;
+    transform: translate(-50%, 0);
+    transition: all 0.1s ease;
+    padding: 0.4em 0.6em;
+    font-family: 'Roboto', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    z-index: 100;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+}
