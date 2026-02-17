@@ -1,0 +1,65 @@
+[
+  {
+    "id": "cardTitle",
+    "name": "Card Title",
+    "type": "text",
+    "default": "DSCR",
+    "helpText": "Header title displayed in uppercase."
+  },
+  {
+    "id": "covLabel",
+    "name": "Covenant Label",
+    "type": "text",
+    "default": "Min Covenant:",
+    "helpText": "Label for the limit value shown in the footer."
+  },
+  {
+    "id": "decimals",
+    "name": "Decimal Places",
+    "type": "number",
+    "default": 2,
+    "helpText": "Number of decimal places for the DSCR value."
+  },
+  {
+    "id": "passText",
+    "name": "Status (Compliant)",
+    "type": "text",
+    "default": "COMPLIANT",
+    "helpText": "Badge text when Value >= Limit."
+  },
+  {
+    "id": "failText",
+    "name": "Status (Breach)",
+    "type": "text",
+    "default": "BREACH",
+    "helpText": "Badge text when Value < Limit."
+  },
+  {
+    "id": "tooltipText",
+    "name": "Tooltip Override",
+    "type": "text",
+    "default": "",
+    "helpText": "Override the dynamic tooltip text. Leave empty for auto-generated context."
+  },
+  {
+    "id": "enableManualOverride",
+    "name": "Enable Manual Override?",
+    "type": "switch",
+    "default": false,
+    "helpText": "Identify if you want to ignore telemetry and use manual values below."
+  },
+  {
+    "id": "manualDSCR",
+    "name": "Manual DSCR Value",
+    "type": "number",
+    "default": 1.35,
+    "helpText": "Simulated DSCR value for testing/override."
+  },
+  {
+    "id": "manualLimit",
+    "name": "Manual Covenant Limit",
+    "type": "number",
+    "default": 1.20,
+    "helpText": "Simulated limit value for testing/override."
+  }
+]
