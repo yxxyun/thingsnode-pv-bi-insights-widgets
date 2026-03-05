@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>String Current Analysis — Visual Test</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style id="widget-css"></style>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #F1F5F9;
+            font-family: 'Roboto', sans-serif;
+            color: #0F172A;
+            padding: 24px;
+        }
+
+        h1 {
+            font-size: 18px;
+            margin-bottom: 8px;
+            color: #0F172A;
+        }
+
+        .subtitle {
+            font-size: 13px;
+            color: #64748B;
+            margin-bottom: 20px;
+        }
+
+        .controls {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+            background: #FFFFFF;
+            padding: 12px 16px;
+            border-radius: 8px;
+            border: 1px solid #E2E8F0;
+        }
+
+        .controls label {
+            font-size: 13px;
+            color: #475569;
+            font-weight: 500;
+        }
+
+        .controls input[type=range] {
+            width: 180px;
+            accent-color: #2563EB;
+        }
+
+        .controls span {
+            font-size: 12px;
+            color: #2563EB;
+            font-weight: 600;
+            min-width: 60px;
+        }
+
+        .test-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .test-cell {
+            position: relative;
+            border: 1px dashed #CBD5E1;
+            border-radius: 8px;
+            background: #FFFFFF;
+            overflow: hidden;
+        }
+
+        .test-cell::after {
+            content: attr(data-label);
+            position: absolute;
+            bottom: -20px;
+            left: 0;
+            font-size: 11px;
+            color: #94A3B8;
+            font-weight: 500;
+        }
+
+        #custom-cell {
+            transition: width 0.2s, height 0.2s;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>String Current Analysis — Visual Test Harness</h1>
+    <p class="subtitle">Hierarchical inverter/string selector + ECharts time series · Light mode · 3 inverters × 8 strings</p>
+
+    <div class="controls">
+        <label>Width: <input type="range" id="rW" min="500" max="1400" value="900"><span id="vW">900px</span></label>
+        <label>Height: <input type="range" id="rH" min="250" max="700" value="450"><span id="vH">450px</span></label>
+    </div>
+
+    <div class="test-grid">
+        <div class="test-cell" id="custom-cell" data-label="Resizable — 3 Inverters × 8 Strings"
+            style="width:900px;height:450px;"></div>
+
+        <div class="test-cell" data-label="Compact — 700×300"
+            style="width:700px;height:300px;margin-top:24px;" data-scenario="compact"></div>
+
+        <div class="test-cell" data-label="Wide — 1200×400"
+            style="width:1200px;height:400px;margin-top:24px;" data-scenario="wide"></div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+    <script>
+        // ──────────────────────────────────────────
+        //  Generate realistic solar string current data
+        // ──────────────────────────────────────────
+        function generateMockData(inverterCount, stringsPerInverter) {
+            var data = [];
+            var now = new Date();
+            var startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0).getTime();
+            var currentTs = now.getTime();
+
+            var inverters = [];
+            for (var inv = 1; inv <= inverterCount; inv++) {
+                inverters.push('Inverter-' + inv);
+            }
+
+            var globalIdx = 0;
+            for (var i = 0; i < inverters.length; i++) {
+                var invName = inverters[i];
+                var invBaseOffset = (i * 0.3) - 0.15;
+
+                for (var s = 1; s <= stringsPerInverter; s++) {
+                    var keyName = 'pv' + s + '_c';
+                    var stringOffset = ((s - 1) * 0.12) - (stringsPerInverter * 0.06);
+                    var points = [];
+
+                    for (var ts = startOfDay; ts <= currentTs; ts += 300000) {
+                        var hourFrac = (ts - startOfDay) / 3600000;
+
+                        // Solar bell curve: peaks around 12:00, zero at night
+                        var solarFactor = 0;
+                        if (hourFrac >= 5.5 && hourFrac <= 18.5) {
+                            var normalized = (hourFrac - 12) / 3.5;
+                            solarFactor = Math.max(0, Math.exp(-normalized * normalized));
+                        }
+
+                        var peakCurrent = 9.5 + invBaseOffset + stringOffset;
+                        var noise = (Math.random() - 0.5) * 0.4;
+                        var cloudDip = (Math.random() < 0.03) ? -Math.random() * 2.5 : 0;
+
+                        var value = solarFactor * peakCurrent + noise + cloudDip;
+                        if (value < 0) value = 0;
+
+                        points.push([ts, Math.round(value * 100) / 100]);
+                    }
+
+                    data.push({
+                        dataKey: { name: keyName, label: invName + ' ' + keyName, type: 'timeseries' },
+                        datasource: {
+                            type: 'entity',
+                            entityType: 'DEVICE',
+                            entityId: 'inv-' + (i + 1) + '-id',
+                            entityName: invName,
+                            entityLabel: invName,
+                            name: invName
+                        },
+                        data: points
+                    });
+
+                    globalIdx++;
+                }
+            }
+
+            return data;
+        }
+
+        // ──────────────────────────────────────────
+        //  Load and run widgets
+        // ──────────────────────────────────────────
+        fetch('.css').then(function (r) { return r.text(); }).then(function (css) {
+            document.getElementById('widget-css').textContent = css;
+        });
+
+        Promise.all([
+            fetch('.html').then(function (r) { return r.text(); }),
+            fetch('.js').then(function (r) { return r.text(); })
+        ]).then(function (results) {
+            var html = results[0];
+            var jsCode = results[1];
+
+            var mockData = generateMockData(3, 8);
+
+            document.querySelectorAll('.test-cell').forEach(function (cell) {
+                cell.innerHTML = html;
+                runWidget(cell, mockData, jsCode);
+            });
+
+            // Slider controls for resizable cell
+            var rW = document.getElementById('rW');
+            var rH = document.getElementById('rH');
+            var vW = document.getElementById('vW');
+            var vH = document.getElementById('vH');
+            var customCell = document.getElementById('custom-cell');
+
+            function updateSize() {
+                customCell.style.width = rW.value + 'px';
+                customCell.style.height = rH.value + 'px';
+                vW.textContent = rW.value + 'px';
+                vH.textContent = rH.value + 'px';
+                if (customCell._resizeFn) customCell._resizeFn();
+            }
+
+            rW.addEventListener('input', updateSize);
+            rH.addEventListener('input', updateSize);
+        });
+
+        function runWidget(cell, mockData, jsCode) {
+            var $cell = $(cell);
+
+            var now = new Date();
+            var startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0).getTime();
+            var currentTs = now.getTime();
+
+            var self = {};
+            self.ctx = {
+                $container: $cell,
+                settings: {
+                    yAxisLabel: 'Current (A)',
+                    maxActiveSeries: 30,
+                    keyPattern: '^pv\\d+_c$',
+                    lineWidth: 1.5,
+                    enableDataZoom: true,
+                    showFullDay: true,
+                    sidebarWidth: 22,
+                    defaultExpanded: false
+                },
+                data: mockData,
+                timeWindow: {
+                    minTime: startOfDay,
+                    maxTime: currentTs
+                },
+                detectChanges: function () { }
+            };
+
+            try {
+                var fn = new Function('self', jsCode);
+                fn(self);
+            } catch (e) {
+                console.error('Widget JS error:', e);
+            }
+
+            cell._resizeFn = function () {
+                if (self.onResize) self.onResize();
+            };
+
+            $(window).on('resize', function () {
+                if (self.onResize) self.onResize();
+            });
+        }
+    </script>
+
+</body>
+
+</html>

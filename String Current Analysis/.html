@@ -1,0 +1,36 @@
+<div class="string-analysis-card">
+
+    <!-- ═══ HEADER ═══ -->
+    <div class="card-header">
+        <button class="btn-sidebar-toggle js-sidebar-toggle" type="button"
+                title="Toggle selection panel">
+            <span class="toggle-icon js-toggle-icon">&#9776;</span>
+        </button>
+        <button class="btn-toggle-all js-toggle-all" type="button">Deselect All</button>
+        <span class="active-count js-active-count">0 / 0 active</span>
+    </div>
+
+    <!-- ═══ MAIN CONTENT ═══ -->
+    <div class="card-content">
+
+        <!-- Left: Hierarchy Tree Panel -->
+        <div class="tree-panel js-tree-panel collapsed">
+            <div class="tree-search">
+                <input type="text" class="tree-search-input js-search"
+                       placeholder="Filter inverters / strings..."
+                       autocomplete="off" spellcheck="false">
+            </div>
+            <div class="tree-scroll js-tree-scroll"></div>
+        </div>
+
+        <!-- Right: Chart Panel -->
+        <div class="chart-panel">
+            <div class="chart-container js-chart-container"></div>
+            <div class="chart-empty js-chart-empty" style="display:none;">
+                Select strings from the panel to plot
+            </div>
+        </div>
+
+    </div>
+
+</div>

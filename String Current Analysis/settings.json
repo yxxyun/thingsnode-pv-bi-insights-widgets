@@ -1,0 +1,60 @@
+[
+    {
+        "id": "yAxisLabel",
+        "name": "Y-Axis Label",
+        "type": "text",
+        "default": "Current (A)",
+        "helpText": "Label shown on the vertical axis of the chart."
+    },
+    {
+        "id": "keyPattern",
+        "name": "Telemetry Key Regex",
+        "type": "text",
+        "default": "^pv\\d+_c$",
+        "helpText": "Regex pattern to match string current telemetry keys. Only matching keys appear in the tree. Default matches pv1_c, pv2_c, etc."
+    },
+    {
+        "id": "lineWidth",
+        "name": "Line Width (px)",
+        "type": "number",
+        "default": 1.5,
+        "helpText": "Default thickness of chart lines in pixels."
+    },
+    {
+        "id": "enableDataZoom",
+        "name": "Enable Time Zoom Slider",
+        "type": "switch",
+        "default": true,
+        "helpText": "Show a horizontal zoom slider below the chart for time range navigation."
+    },
+    {
+        "id": "showFullDay",
+        "name": "Show Full Day on X-Axis",
+        "type": "switch",
+        "default": true,
+        "helpText": "Force x-axis to span 00:00-24:00 regardless of data range. Ideal for 'Current Day' time windows."
+    },
+    {
+        "id": "sidebarWidth",
+        "name": "Sidebar Width (%)",
+        "type": "number",
+        "default": 22,
+        "min": 10,
+        "max": 40,
+        "helpText": "Width of the inverter/string tree panel as a percentage of the widget width."
+    },
+    {
+        "id": "defaultExpanded",
+        "name": "Expand Inverters by Default",
+        "type": "switch",
+        "default": false,
+        "helpText": "Expand all inverter groups on initial load. Recommended off for large plants."
+    },
+    {
+        "id": "tooltipText",
+        "name": "Tooltip Content (Override)",
+        "type": "text",
+        "default": "",
+        "helpText": "Override the dynamic chart tooltip. Leave empty for auto-generated per-series values."
+    }
+]

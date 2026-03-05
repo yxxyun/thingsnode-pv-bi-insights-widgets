@@ -1,0 +1,433 @@
+/* ════════════════════════════════════════════════════════
+   String Current Analysis — Light Mode
+   ThingsBoard v4.3.0 PE | Time Series (Custom)
+   Hierarchical inverter/string selector + ECharts
+   Dynamic scaling — all sizes in em
+   ════════════════════════════════════════════════════════ */
+
+/* ─────────────────────────────
+   DESIGN TOKENS
+   ───────────────────────────── */
+.string-analysis-card {
+    --c-bg:            #FFFFFF;
+    --c-surface:       #F8FAFC;
+    --c-border:        #E2E8F0;
+    --c-border-hover:  #CBD5E1;
+
+    --c-text:          #0F172A;
+    --c-text-dim:      #475569;
+    --c-text-muted:    #94A3B8;
+
+    --c-primary:       #2563EB;
+    --c-primary-light: rgba(37, 99, 235, 0.08);
+    --c-primary-mid:   rgba(37, 99, 235, 0.18);
+
+    --c-green:         #16A34A;
+    --c-amber:         #D97706;
+    --c-red:           #DC2626;
+
+    --c-tree-hover:    #F1F5F9;
+    --c-tree-active:   rgba(37, 99, 235, 0.06);
+    --c-divider:       #E2E8F0;
+
+    --shadow-card:     0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-hover:    0 4px 12px rgba(0,0,0,0.08);
+
+    --transition:      0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ─────────────────────────────
+   ROOT — absolute fill
+   ───────────────────────────── */
+.string-analysis-card,
+.string-analysis-card * {
+    box-sizing: border-box;
+}
+
+.string-analysis-card {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    width: 100%; height: 100%;
+    margin: 0;
+
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+
+    background: var(--c-bg);
+    border: 1px solid var(--c-border);
+    box-shadow: var(--shadow-card);
+    border-radius: 0.5em;
+    padding: 0;
+    overflow: hidden;
+
+    font-family: 'Roboto', 'Segoe UI', Arial, sans-serif;
+    color: var(--c-text);
+    transition: box-shadow var(--transition);
+}
+
+.string-analysis-card:hover {
+    box-shadow: var(--shadow-hover);
+}
+
+/* ─────────────────────────────
+   HEADER
+   ───────────────────────────── */
+.card-header {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.45em 0.7em;
+    border-bottom: 1px solid var(--c-divider);
+    background: var(--c-surface);
+    min-height: 0;
+    gap: 0.5em;
+}
+
+/* ─── Sidebar Toggle Button ─── */
+.btn-sidebar-toggle {
+    flex: 0 0 auto;
+    font-size: 0.7em;
+    color: var(--c-text-dim);
+    background: none;
+    border: 1px solid var(--c-border);
+    border-radius: 0.25em;
+    padding: 0.1em 0.35em;
+    cursor: pointer;
+    line-height: 1;
+    font-family: inherit;
+    transition: color var(--transition), border-color var(--transition), background var(--transition);
+}
+
+.btn-sidebar-toggle:hover {
+    color: var(--c-primary);
+    border-color: var(--c-primary);
+    background: var(--c-primary-light);
+}
+
+.active-count {
+    font-size: 0.55em;
+    font-weight: 600;
+    color: var(--c-text-dim);
+    white-space: nowrap;
+    background: var(--c-primary-light);
+    padding: 0.15em 0.5em;
+    border-radius: 0.25em;
+    letter-spacing: 0.02em;
+    margin-left: auto;
+}
+
+.btn-toggle-all {
+    font-size: 0.5em;
+    font-weight: 600;
+    color: var(--c-text-muted);
+    background: none;
+    border: 1px solid var(--c-border);
+    border-radius: 0.3em;
+    padding: 0.2em 0.55em;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: color var(--transition), border-color var(--transition), background var(--transition);
+    font-family: inherit;
+    line-height: 1.3;
+}
+
+.btn-toggle-all:hover {
+    color: var(--c-red);
+    border-color: var(--c-red);
+    background: rgba(220, 38, 38, 0.05);
+}
+
+.btn-toggle-all.select-mode:hover {
+    color: var(--c-primary);
+    border-color: var(--c-primary);
+    background: var(--c-primary-light);
+}
+
+/* ─────────────────────────────
+   MAIN CONTENT — two-panel
+   ───────────────────────────── */
+.card-content {
+    flex: 1 1 auto;
+    display: flex;
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* ─────────────────────────────
+   TREE PANEL (left sidebar)
+   ───────────────────────────── */
+.tree-panel {
+    flex: 0 0 22%;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--c-divider);
+    background: var(--c-bg);
+    min-width: 0;
+    overflow: hidden;
+    transition: flex-basis 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+                opacity 0.2s ease,
+                padding 0.25s ease,
+                border-width 0.25s ease;
+}
+
+.tree-panel.collapsed {
+    flex: 0 0 0;
+    opacity: 0;
+    padding: 0;
+    border-right: none;
+    pointer-events: none;
+}
+
+/* ─── Search ─── */
+.tree-search {
+    flex: 0 0 auto;
+    padding: 0.3em 0.4em;
+    border-bottom: 1px solid var(--c-divider);
+}
+
+.tree-search-input {
+    width: 100%;
+    font-size: 0.55em;
+    font-family: inherit;
+    font-weight: 500;
+    color: var(--c-text);
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: 0.3em;
+    padding: 0.3em 0.45em;
+    outline: none;
+    transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.tree-search-input::placeholder {
+    color: var(--c-text-muted);
+    font-weight: 400;
+}
+
+.tree-search-input:focus {
+    border-color: var(--c-primary);
+    box-shadow: 0 0 0 2px var(--c-primary-light);
+}
+
+/* ─── Scrollable Tree ─── */
+.tree-scroll {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 0.15em 0;
+}
+
+.tree-scroll::-webkit-scrollbar {
+    width: 4px;
+}
+
+.tree-scroll::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.tree-scroll::-webkit-scrollbar-thumb {
+    background: var(--c-border);
+    border-radius: 2px;
+}
+
+.tree-scroll::-webkit-scrollbar-thumb:hover {
+    background: var(--c-border-hover);
+}
+
+/* ─── Inverter Group ─── */
+.tree-inverter {
+    border-bottom: 1px solid var(--c-divider);
+}
+
+.tree-inverter:last-child {
+    border-bottom: none;
+}
+
+.inverter-header {
+    display: flex;
+    align-items: center;
+    gap: 0.15em;
+    padding: 0.3em 0.35em;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    transition: background var(--transition);
+}
+
+.inverter-header:hover {
+    background: var(--c-tree-hover);
+}
+
+.expand-icon {
+    flex: 0 0 auto;
+    font-size: 0.55em;
+    color: var(--c-text-muted);
+    width: 1em;
+    text-align: center;
+    line-height: 1;
+    transition: color var(--transition);
+}
+
+.inverter-header:hover .expand-icon {
+    color: var(--c-text-dim);
+}
+
+/* ─── Custom Checkbox (inverter + string) ─── */
+.inverter-check,
+.string-item {
+    display: flex;
+    align-items: center;
+    gap: 0.2em;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.inverter-check input[type="checkbox"],
+.string-item input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 0.7em;
+    height: 0.7em;
+    border: 1.5px solid var(--c-border-hover);
+    border-radius: 0.12em;
+    background: var(--c-bg);
+    cursor: pointer;
+    flex-shrink: 0;
+    position: relative;
+    transition: background var(--transition), border-color var(--transition);
+}
+
+.inverter-check input[type="checkbox"]:checked,
+.string-item input[type="checkbox"]:checked {
+    background: var(--c-primary);
+    border-color: var(--c-primary);
+}
+
+.inverter-check input[type="checkbox"]:checked::after,
+.string-item input[type="checkbox"]:checked::after {
+    content: '';
+    position: absolute;
+    top: 45%;
+    left: 50%;
+    width: 0.25em;
+    height: 0.42em;
+    border: solid #fff;
+    border-width: 0 1.5px 1.5px 0;
+    transform: translate(-50%, -55%) rotate(40deg);
+}
+
+.inverter-check input[type="checkbox"].indeterminate {
+    background: var(--c-primary-mid);
+    border-color: var(--c-primary);
+}
+
+.inverter-check input[type="checkbox"].indeterminate::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0.35em;
+    height: 1.5px;
+    background: #fff;
+    transform: translate(-50%, -50%);
+    border: none;
+}
+
+.inverter-name {
+    font-size: 0.58em;
+    font-weight: 600;
+    color: var(--c-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+    min-width: 0;
+}
+
+.inverter-count {
+    font-size: 0.42em;
+    font-weight: 600;
+    color: var(--c-text-muted);
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin-left: auto;
+    padding-left: 0.3em;
+}
+
+/* ─── String List (under inverter) ─── */
+.string-list {
+    padding: 0.05em 0 0.15em 0;
+}
+
+.string-item {
+    padding: 0.18em 0.35em 0.18em 1.35em;
+    transition: background var(--transition);
+    gap: 0.25em;
+}
+
+.string-item:hover {
+    background: var(--c-tree-hover);
+}
+
+.color-swatch {
+    width: 0.45em;
+    height: 0.45em;
+    border-radius: 50%;
+    flex-shrink: 0;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    transition: box-shadow var(--transition);
+}
+
+.string-item input[type="checkbox"]:checked ~ .color-swatch {
+    box-shadow: 0 0 3px currentColor;
+}
+
+.string-name {
+    font-size: 0.5em;
+    font-weight: 500;
+    color: var(--c-text-dim);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+    min-width: 0;
+}
+
+/* ─── Hidden when filtered out ─── */
+.tree-inverter.hidden,
+.string-item.hidden {
+    display: none;
+}
+
+/* ─────────────────────────────
+   CHART PANEL (right)
+   ───────────────────────────── */
+.chart-panel {
+    flex: 1 1 auto;
+    display: flex;
+    align-items: stretch;
+    justify-content: stretch;
+    position: relative;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.chart-container {
+    width: 100%;
+    height: 100%;
+}
+
+.chart-empty {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.65em;
+    font-weight: 500;
+    color: var(--c-text-muted);
+    pointer-events: none;
+}
