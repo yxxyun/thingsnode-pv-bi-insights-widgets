@@ -144,7 +144,7 @@
 /* Y-axis title (rotated) */
 .y-axis-title {
     position: absolute;
-    left: 0.15em;
+    left: 0.25em;
     top: 50%;
     transform: rotate(-90deg) translateX(-50%);
     transform-origin: center left;
@@ -283,7 +283,7 @@
 /* X-axis month labels */
 .x-axis-label {
     position: absolute;
-    bottom: -1em;
+    bottom: -1.4em;
     left: 50%;
     transform: translateX(-50%);
     font-size: 0.36em;
