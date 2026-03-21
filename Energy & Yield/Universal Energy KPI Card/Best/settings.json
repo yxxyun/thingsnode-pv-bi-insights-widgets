@@ -1,0 +1,58 @@
+[
+  {
+    "id": "cardMode",
+    "name": "Context Mode",
+    "type": "select",
+    "items": [
+      {
+        "value": "today",
+        "label": "Today's Energy"
+      },
+      {
+        "value": "mtd",
+        "label": "MTD Energy"
+      },
+      {
+        "value": "ytd",
+        "label": "YTD Energy"
+      },
+      {
+        "value": "life",
+        "label": "Lifetime Energy"
+      },
+      {
+        "value": "custom",
+        "label": "Custom"
+      }
+    ]
+  },
+  {
+    "id": "inputDivider",
+    "name": "Input Divider (To get MWh)",
+    "type": "number",
+    "default": 1000,
+    "helpText": "If telemetry is kWh, set to 1000. If MWh, set to 1."
+  },
+  {
+    "id": "autoScale",
+    "name": "Auto Scale (MWh ↔ GWh)",
+    "type": "switch",
+    "default": true
+  },
+  {
+    "id": "decimals",
+    "name": "Decimals",
+    "type": "number",
+    "default": 1
+  },
+  {
+    "id": "overrideTitle",
+    "name": "Override Title (Optional)",
+    "type": "text"
+  },
+  {
+    "id": "overrideSub",
+    "name": "Override Subtitle (Optional)",
+    "type": "text"
+  }
+]

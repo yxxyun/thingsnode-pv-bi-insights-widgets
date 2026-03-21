@@ -44,6 +44,8 @@ self.onDataUpdated = function () {
     var $el = self.ctx.$widget;
     var $valElement = $el.find('.js-kpi-value');
     var $unitElement = $el.find('.js-kpi-unit');
+    var s = self.ctx.settings;
+    var mode = s.cardMode || 'custom';
 
     // 1. Data safety check
     if (!self.ctx.data || self.ctx.data.length === 0 ||
@@ -62,24 +64,30 @@ self.onDataUpdated = function () {
 
     var val = parseFloat(rawVal);
 
-    // 3. Unit conversion
-    var inputDiv = self.ctx.settings.inputDivider || 1;
+    // 3. Base Conversion (Input -> MWh)
+    // We assume the input divider correctly converts raw telemetry to MWh
+    var inputDiv = s.inputDivider || 1; 
     var mwhVal = val / inputDiv;
 
+    // 4. Mode-Specific Unit Logic
     var displayVal = mwhVal;
     var displayUnit = 'MWh';
-    var autoScale = (self.ctx.settings.autoScale !== false);
+    var autoScale = (s.autoScale !== false);
 
-    // 4. Auto-scaling (MWh ↔ GWh)
-    if (autoScale && Math.abs(mwhVal) >= 1000) {
+    if (mode === 'ytd' || mode === 'life') {
+        // FORCE GWh for YTD and Lifetime
         displayVal = mwhVal / 1000;
         displayUnit = 'GWh';
+    } else {
+        // Default Auto-scale behavior for Today/MTD/Custom
+        if (autoScale && Math.abs(mwhVal) >= 1000) {
+            displayVal = mwhVal / 1000;
+            displayUnit = 'GWh';
+        }
     }
 
     // 5. Number formatting
-    var decimals = (self.ctx.settings.decimals !== undefined)
-        ? self.ctx.settings.decimals
-        : 1;
+    var decimals = (s.decimals !== undefined) ? s.decimals : 1;
 
     var formattedVal = displayVal.toLocaleString('en-US', {
         minimumFractionDigits: decimals,
@@ -98,19 +106,16 @@ self.onDataUpdated = function () {
 };
 
 // --------------------------------------------------
-//  Responsive font scaling — optimized for ~3:1 ratio
+//  Responsive font scaling
 // --------------------------------------------------
 self.onResize = function () {
     var $el = self.ctx.$widget;
     var $card = $el.find('.energy-card');
     var h = $el.height();
-    var w = $el.width();
-
-    // Height is always the bottleneck at 3:1.
-    // Total em budget:  title(0.7) + value(2.0) + subtitle(0.6) + gaps ≈ 3.6em
-    // So baseSize = usableHeight / 3.6
-    var usableH = h - 10; // subtract padding
-    var baseSize = usableH / 3.6;
+    
+    // Total em budget:  title(0.7) + value(1.7) + subtitle(0.55) + gaps ≈ 3.2em
+    var usableH = h - 10; 
+    var baseSize = usableH / 3.2;
 
     // Clamp
     if (baseSize < 8) baseSize = 8;
