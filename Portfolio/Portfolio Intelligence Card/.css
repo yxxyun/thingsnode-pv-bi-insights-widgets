@@ -34,7 +34,7 @@
     justify-content: center;
 
     background: var(--c-bg);
-    border: 1px solid var(--c-cyan-border);
+    border: 2px solid var(--c-cyan-border);
     box-shadow: 0 0 12px var(--c-cyan-glow), inset 0 0 15px rgba(0, 0, 0, 0.4);
     border-radius: 8px;
     padding: 0.5em 0.7em;
@@ -74,7 +74,7 @@
 }
 
 .card-title {
-    font-size: 0.7em;
+    font-size: 0.65em;
     font-weight: 700;
     color: var(--c-text);
     text-transform: uppercase;
@@ -135,7 +135,7 @@
 .delta-container {
     display: none;
     align-items: center;
-    font-size: 0.65em;
+    font-size: 0.575em;
     font-weight: 600;
     color: var(--c-green);
 }
@@ -160,8 +160,8 @@
     display: none;
     align-items: center;
     color: var(--c-amber);
-    font-size: 0.7em;
-    font-weight: 600;
+    font-size: 0.575em;
+    font-weight: 500;
 }
 
 .exposure-icon {
@@ -205,12 +205,13 @@
 }
 
 .optimal-range {
-    font-size: 0.55em;
+    font-size: 0.45em;
     color: var(--c-text-dim);
+    font-weight: 500;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-top: 0.15em;
+    margin-top: 0.05em;
 }
 
 .check-icon {

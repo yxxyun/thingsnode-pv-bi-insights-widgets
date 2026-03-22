@@ -53,7 +53,7 @@
 }
 
 .table-title {
-    font-size: 1em;
+    font-size: 1.2em;
     font-weight: 700;
     color: var(--c-text);
     text-transform: uppercase;
@@ -80,11 +80,12 @@ table {
     border-collapse: collapse;
 }
 
+/* column names */
 th {
     text-align: left;
     color: var(--c-text-dim);
     font-weight: 600;
-    font-size: 0.78em;
+    font-size: 0.95em;
     padding: 0.4em 0.5em;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     position: sticky;
@@ -94,10 +95,11 @@ th {
     white-space: nowrap;
 }
 
+/* contents*/
 td {
     padding: 0.5em;
     color: var(--c-text);
-    font-size: 0.72em;
+    font-size: 0.85em;
     font-weight: 400;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     white-space: nowrap;
@@ -154,7 +156,7 @@ tr.row-warning {
     border-top: 1px solid rgba(255, 255, 255, 0.1);
     display: flex;
     justify-content: space-between;
-    font-size: 0.7em;
+    font-size: 0.75em;
     color: var(--c-text-dim);
     white-space: nowrap;
 }
