@@ -7,7 +7,7 @@
 /* ─────────────────────────────
    ROOT & TOKENS
    ───────────────────────────── */
-   .cf-card {
+.cf-card {
     --c-accent: #06F5FF;
     --c-accent-glow: rgba(6, 245, 255, 0.12);
     --c-accent-border: rgba(6, 245, 255, 0.4);

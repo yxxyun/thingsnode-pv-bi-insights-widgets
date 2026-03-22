@@ -47,7 +47,7 @@
     align-items: stretch;
 
     background: var(--c-bg);
-    border: 1px solid var(--c-mode-border);
+    border: 2px solid var(--c-mode-border);
     box-shadow: 0 0 12px var(--c-mode-glow), inset 0 0 15px rgba(0, 0, 0, 0.4);
     border-radius: 8px;
     padding: 0.5em 0.7em 0.4em;
