@@ -1,58 +1,76 @@
 [
-    {
-        "id": "widgetTitle",
-        "name": "Widget Title",
-        "type": "text",
-        "default": "GRID OUTAGE EVENT SUMMARY",
-        "helpText": "Header title displayed at the top of the widget."
-    },
-    {
-        "id": "currencySym",
-        "name": "Currency Symbol",
-        "type": "text",
-        "default": "LKR",
-        "helpText": "Currency prefix for claimable amounts (e.g. LKR, USD, EUR)."
-    },
-    {
-        "id": "dataKeyName",
-        "name": "Attribute Key Name (JSON)",
-        "type": "text",
-        "default": "grid_outage_data",
-        "helpText": "The telemetry key that contains the JSON array of events."
-    },
-    {
-        "id": "energyUnit",
-        "name": "Energy Unit",
-        "type": "text",
-        "default": "MWh",
-        "helpText": "Unit label for energy lost values (e.g. MWh, kWh)."
-    },
-    {
-        "id": "accentColor",
-        "name": "Accent Color",
-        "type": "text",
-        "default": "",
-        "helpText": "Override the border glow accent (CSS color, e.g. #06F5FF). Leave blank for default cyan."
-    },
-    {
-        "id": "tooltipText",
-        "name": "Tooltip Content (Override)",
-        "type": "text",
-        "default": "",
-        "helpText": "Override the card-level tooltip. Leave empty for auto-generated summary."
-    },
-    {
-        "id": "enableDemoData",
-        "name": "Enable Demo Data",
-        "type": "boolean",
-        "default": true,
-        "helpText": "Show demo claims when no real data is available. Disable for production."
-    },
-    {
-        "id": "showStatusColumn",
-        "name": "Show Status Column",
-        "type": "boolean",
-        "default": false,
-        "helpText": "Toggle the display of the status column and breakdown counts."
-    }
+  {
+    "id": "widgetTitle",
+    "name": "Widget Title",
+    "type": "text",
+    "default": "GRID OUTAGE EVENT SUMMARY",
+    "helpText": "Header title displayed at the top of the widget."
+  },
+  {
+    "id": "currencySym",
+    "name": "Currency Symbol",
+    "type": "text",
+    "default": "LKR",
+    "helpText": "Currency prefix for claimable amounts (e.g. LKR, USD, EUR)."
+  },
+  {
+    "id": "dataKeyName",
+    "name": "Attribute Key Name (JSON)",
+    "type": "text",
+    "default": "grid_outage_data",
+    "helpText": "The telemetry key that contains the JSON array of events."
+  },
+  {
+    "id": "energyUnit",
+    "name": "Energy Unit",
+    "type": "text",
+    "default": "MWh",
+    "helpText": "Unit label for energy lost values (e.g. MWh, kWh)."
+  },
+  {
+    "id": "accentColor",
+    "name": "Accent Color",
+    "type": "text",
+    "helpText": "Override the border glow accent (CSS color, e.g. #06F5FF). Leave blank for default cyan."
+  },
+  {
+    "id": "tooltipText",
+    "name": "Tooltip Content (Override)",
+    "type": "text",
+    "helpText": "Override the card-level tooltip. Leave empty for auto-generated summary."
+  },
+  {
+    "id": "enableDemoData",
+    "name": "Enable Demo Data",
+    "hint": "Show demo claims when no real data is available. Disable for production.",
+    "type": "select",
+    "default": true,
+    "items": [
+      {
+        "value": true,
+        "label": "True"
+      },
+      {
+        "value": false,
+        "label": "False"
+      }
+    ]
+  },
+  {
+    "id": "showStatusColumn",
+    "name": "Show Status Column",
+    "hint": "Toggle the display of the status column and breakdown counts.",
+    "type": "select",
+    "default": false,
+    "items": [
+      {
+        "value": true,
+        "label": "True"
+      },
+      {
+        "value": false,
+        "label": "False"
+      }
+    ]
+  }
 ]

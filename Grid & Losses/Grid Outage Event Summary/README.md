@@ -32,6 +32,6 @@ Processing logic:
 ## 4) ThingsBoard setup checklist
 1. Add widget as `Latest values`.
 2. Map your telemetry key to contain a JSON array payload.
-3. Select whether to show/hide the **Status Column** in the Settings tab.
+3. Select whether to show/hide the **Status Column** in the Settings tab. (Note: These boolean toggles use a `select` dropdown type in `settings.json` for enhanced ThingsBoard native compatibility).
 4. Set your `currencySym` and `energyUnit`.
 5. Disable `enableDemoData` in production.
