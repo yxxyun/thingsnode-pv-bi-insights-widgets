@@ -106,8 +106,13 @@
     flex: 1;
     width: 100%;
     height: 100%;
-    background: #0a0a2e;
+    background: #040924;
     z-index: 1;
+}
+
+/* Invert map tiles to create a highly readable dark map with white labels */
+.map-container .leaflet-tile-pane {
+    filter: invert(100%) hue-rotate(190deg) brightness(90%) contrast(1.1) saturate(1.2);
 }
 
 /* ===================
@@ -231,20 +236,20 @@
 
 /* Capacity dots */
 .size-s {
-    width: 0.35em;
-    height: 0.35em;
+    width: 0.4em;
+    height: 0.4em;
     background: #B0BEC5;
 }
 
 .size-m {
-    width: 0.55em;
-    height: 0.55em;
+    width: 0.6em;
+    height: 0.6em;
     background: #B0BEC5;
 }
 
 .size-l {
-    width: 0.8em;
-    height: 0.8em;
+    width: 0.9em;
+    height: 0.9em;
     background: #B0BEC5;
 }
 
