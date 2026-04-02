@@ -69,10 +69,8 @@ function initMap() {
         preferCanvas: true  // better perf for many markers
     });
 
-    // Using Voyager (light map), and we'll invert it via CSS to create an 
-    // excellent dark map with high-contrast, perfectly legible text
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-        subdomains: 'abcd',
+    // Using OpenStreetMap for better terrain/water contrast, inverted via CSS to create dark mode
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19
     }).addTo(self.map);
 
