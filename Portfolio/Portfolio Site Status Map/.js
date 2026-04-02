@@ -69,8 +69,9 @@ function initMap() {
         preferCanvas: true  // better perf for many markers
     });
 
-    // Using OpenStreetMap for better terrain/water contrast, inverted via CSS to create dark mode
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    // Using CartoDB Positron (light_all), inverted via CSS for a clean dark map without loud terrain 
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        subdomains: 'abcd',
         maxZoom: 19
     }).addTo(self.map);
 
