@@ -416,6 +416,13 @@ function processLiveTimeSeries(rawData) {
         dataPotential = generatePotentialCurve();
     }
 
+    /* Filter window to 5AM (idx 20) to 7PM (idx 76) inclusive */
+    var startIdx = 20;
+    var endIdx = 77;
+    labels = labels.slice(startIdx, endIdx);
+    dataPotential = dataPotential.slice(startIdx, endIdx);
+    dataExported = dataExported.slice(startIdx, endIdx);
+
     renderChartData(labels, dataPotential, dataExported);
     updateTooltipSummary(dataPotential, dataExported);
 }
@@ -490,6 +497,13 @@ function loadSimulation() {
         exported = Math.max(0, exported);
         dataExported.push(exported);
     }
+
+    /* Filter window to 5AM (idx 20) to 7PM (idx 76) inclusive */
+    var startIdx = 20;
+    var endIdx = 77;
+    labels = labels.slice(startIdx, endIdx);
+    dataPotential = dataPotential.slice(startIdx, endIdx);
+    dataExported = dataExported.slice(startIdx, endIdx);
 
     renderChartData(labels, dataPotential, dataExported);
     updateTooltipSummary(dataPotential, dataExported);
