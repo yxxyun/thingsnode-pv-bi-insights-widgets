@@ -653,6 +653,27 @@ function renderChart(labels, p50, p75, p90, band, actual) {
     myChart.data.datasets[3].data = showBand ? band : [];   // Confidence Band
     myChart.data.datasets[4].data = actual;   // Actual
 
+    // Calculate dynamic y-axis range
+    var allVals = [].concat(p50, p75, p90, actual).filter(function(v) { return v !== null && v !== undefined; });
+    if (allVals.length > 0) {
+        var y1 = Math.min.apply(null, allVals);
+        var y2 = Math.max.apply(null, allVals);
+        var y0 = y2 - y1;
+        
+        // Handle edge-case flat lines
+        if (y0 === 0) y0 = y1 * 0.1 || 10;
+        
+        var k = 0.1; // 10% padding
+        var newMin = y1 - (k * y0);
+        var newMax = y2 + (k * y0);
+        
+        newMin = Math.max(0, newMin);
+        
+        myChart.options.scales.y.min = newMin;
+        myChart.options.scales.y.max = newMax;
+        myChart.options.scales.y.beginAtZero = false;
+    }
+
     myChart.update('none');
 }
 
