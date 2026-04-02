@@ -3,7 +3,7 @@
         "id": "widgetTitle",
         "name": "Widget Title",
         "type": "text",
-        "default": "INSURANCE CLAIMABLE EVENTS SUMMARY",
+        "default": "GRID OUTAGE EVENT SUMMARY",
         "helpText": "Header title displayed at the top of the widget."
     },
     {
@@ -17,8 +17,8 @@
         "id": "dataKeyName",
         "name": "Attribute Key Name (JSON)",
         "type": "text",
-        "default": "insurance_claims_data",
-        "helpText": "The telemetry key that contains the JSON array of claim events."
+        "default": "grid_outage_data",
+        "helpText": "The telemetry key that contains the JSON array of events."
     },
     {
         "id": "energyUnit",
@@ -47,5 +47,12 @@
         "type": "boolean",
         "default": true,
         "helpText": "Show demo claims when no real data is available. Disable for production."
+    },
+    {
+        "id": "showStatusColumn",
+        "name": "Show Status Column",
+        "type": "boolean",
+        "default": false,
+        "helpText": "Toggle the display of the status column and breakdown counts."
     }
 ]

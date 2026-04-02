@@ -447,3 +447,18 @@
         box-shadow: 0 0 4px rgba(255, 82, 82, 0.6);
     }
 }
+
+/* ─────────────────────────────
+   LAYOUT MODIFIERS (JS Toggled)
+   ───────────────────────────── */
+.hide-status-column .header-right {
+    display: none !important;
+}
+
+.hide-status-column .stat-status-related {
+    display: none !important;
+}
+
+.hide-status-column .col-status {
+    display: none !important;
+}

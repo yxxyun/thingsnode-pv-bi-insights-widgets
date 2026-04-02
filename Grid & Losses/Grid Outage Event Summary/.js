@@ -43,6 +43,8 @@ self.onInit = function () {
         });
     }
 
+    $card.toggleClass('hide-status-column', s.showStatusColumn !== true);
+
     updateDom();
     self.onResize();
     self.onDataUpdated();
@@ -52,7 +54,7 @@ self.onInit = function () {
 //  DOM setup — titles, tooltip
 // ──────────────────────────────────────────────────
 function updateDom() {
-    $title.text(s.widgetTitle || 'INSURANCE CLAIMABLE EVENTS SUMMARY');
+    $title.text(s.widgetTitle || 'GRID OUTAGE EVENT SUMMARY');
 
     if (s.tooltipText) {
         $tooltip.text(s.tooltipText);
@@ -86,23 +88,23 @@ self.onDataUpdated = function () {
     var enableDemo = (s.enableDemoData !== undefined) ? s.enableDemoData : true;
     if ((!claimsData || claimsData.length === 0) && enableDemo) {
         claimsData = [
-            { date: '2026-02-02', eventType: 'Storm Damage (Monsoon)', energyLost: 15.2, amount: 350000, status: 'Pending' },
-            { date: '2026-01-14', eventType: 'Inverter Fire', energyLost: 28.5, amount: 650000, status: 'Approved' },
-            { date: '2025-12-17', eventType: 'CEB Grid Failure', energyLost: 5.8, amount: 125000, status: 'Rejected' },
-            { date: '2025-11-03', eventType: 'Lightning Strike', energyLost: 42.1, amount: 820000, status: 'Approved' },
-            { date: '2025-10-20', eventType: 'Flood Damage', energyLost: 18.9, amount: 410000, status: 'Pending' }
+            { date: '2026-02-02', eventType: 'Grid Frequency Drop', energyLost: 15.2, amount: 350000, status: 'Pending' },
+            { date: '2026-01-14', eventType: 'Grid Blackout', energyLost: 28.5, amount: 650000, status: 'Approved' },
+            { date: '2025-12-17', eventType: 'CEB Feeder Trip', energyLost: 5.8, amount: 125000, status: 'Rejected' },
+            { date: '2025-11-03', eventType: 'Islanding Event', energyLost: 42.1, amount: 820000, status: 'Approved' },
+            { date: '2025-10-20', eventType: 'Transformer Maintenance', energyLost: 18.9, amount: 410000, status: 'Pending' }
         ];
     }
 
     // ── 3. Empty state ──
     if (!claimsData || claimsData.length === 0) {
-        $list.html('<div class="empty-state">No claimable events recorded</div>');
+        $list.html('<div class="empty-state">No grid outages recorded</div>');
         updateStats(0, 0, 0, 0);
         updateStatus(0, 0, 0);
         $total.text(currency + ' 0');
 
         if (!s.tooltipText) {
-            $tooltip.text('No insurance claims on record.');
+            $tooltip.text('No historical grid outages on record.');
         }
 
         if (self.ctx.detectChanges) self.ctx.detectChanges();
@@ -134,17 +136,22 @@ self.onDataUpdated = function () {
         var statusLower = (claim.status || '').toLowerCase();
         var statusClass = 'pending';
 
-        if (statusLower.indexOf('approv') !== -1) {
-            statusClass = 'approved';
-            totalClaimable += amountVal;
-            countApproved++;
-        } else if (statusLower.indexOf('reject') !== -1) {
-            statusClass = 'rejected';
-            countRejected++;
+        if (s.showStatusColumn === true) {
+            if (statusLower.indexOf('approv') !== -1) {
+                statusClass = 'approved';
+                totalClaimable += amountVal;
+                countApproved++;
+            } else if (statusLower.indexOf('reject') !== -1) {
+                statusClass = 'rejected';
+                countRejected++;
+            } else {
+                statusClass = 'pending';
+                totalClaimable += amountVal;
+                countPending++;
+            }
         } else {
-            statusClass = 'pending';
+            // When status is disabled, treat all events equally for financial loss summation
             totalClaimable += amountVal;
-            countPending++;
         }
 
         // Build row (string concatenation, not template literals)
@@ -152,11 +159,15 @@ self.onDataUpdated = function () {
             '<div class="col col-date val-date">' + esc(dateStr) + '</div>' +
             '<div class="col col-event val-event">' + esc(claim.eventType) + '</div>' +
             '<div class="col col-lost val-lost">' + (claim.energyLost || 0) + ' ' + unit + '</div>' +
-            '<div class="col col-amount val-amount">' + currency + ' ' + amountStr + '</div>' +
-            '<div class="col col-status">' +
+            '<div class="col col-amount val-amount">' + currency + ' ' + amountStr + '</div>';
+            
+        if (s.showStatusColumn === true) {
+            rowHtml += '<div class="col col-status">' +
             '<div class="status-pill ' + statusClass + '">' + esc(claim.status || 'Pending') + '</div>' +
-            '</div>' +
             '</div>';
+        }
+        
+        rowHtml += '</div>';
         $list.append(rowHtml);
     }
 
@@ -172,9 +183,11 @@ self.onDataUpdated = function () {
     // ── 8. Dynamic tooltip ──
     if (!s.tooltipText) {
         var tipParts = [];
-        tipParts.push(claimsData.length + ' claim' + (claimsData.length !== 1 ? 's' : '') + ' on record');
-        tipParts.push(countApproved + ' approved · ' + countPending + ' pending · ' + countRejected + ' rejected');
-        tipParts.push('Total claimable: ' + currency + ' ' + totalClaimable.toLocaleString());
+        tipParts.push(claimsData.length + ' event' + (claimsData.length !== 1 ? 's' : '') + ' on record');
+        if (s.showStatusColumn === true) {
+            tipParts.push(countApproved + ' approved · ' + countPending + ' pending · ' + countRejected + ' rejected');
+        }
+        tipParts.push('Total financial loss: ' + currency + ' ' + totalClaimable.toLocaleString());
         $tooltip.text(tipParts.join(' · '));
     }
 
