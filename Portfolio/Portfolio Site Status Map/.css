@@ -110,9 +110,9 @@
     z-index: 1;
 }
 
-/* Invert Positron tiles to create a gorgeous clean blue dark map with crisp letters and water contrast */
+/* Invert map tiles to create a highly readable dark map with active terrain contrast */
 .map-container .leaflet-tile-pane {
-    filter: invert(100%) hue-rotate(180deg) brightness(1.2) contrast(1.15) saturate(1.3);
+    filter: invert(100%) hue-rotate(180deg) brightness(1.1) contrast(1.1) saturate(1.5);
 }
 
 /* ===================
