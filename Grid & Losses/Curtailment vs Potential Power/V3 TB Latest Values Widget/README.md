@@ -32,8 +32,10 @@ Tooltip energy summary:
 - Includes a configurable Theoretical Error Margin `± X%` approximation since the calculated bounds rely on theoretical clear-sky metrics without irradiance parsing.
 
 ## 3) Telemetry requirements and datasource structure
-- Required datasource:
-  - `datasources[0]` must be the plant entity
+- Required datasource configuration:
+  - Datasource type: **Entity**
+  - Select the plant's **Entity alias**
+  - Add relevant time-series data keys (required to save the datasource in TB)
 - Settings Form mappings require at a minimum:
   - Capacity Attribute Key (default `Plant Total Capacity`) with specified Unit conversion.
   - Active Power (e.g. `active_power`)
@@ -45,7 +47,7 @@ Tooltip energy summary:
 
 ## 5) ThingsBoard setup checklist
 1. Add widget as `Latest values`.
-2. Set first datasource to the entity tracking active power and limits.
+2. Add a datasource, choose type **Entity**, select the plant's **Entity alias**, and add time series data keys (e.g. `active_power`, `setpoint_active_power`).
 3. Configure settings to match fallback telemetry keys explicitly across the portfolio.
 4. Customize `Theoretical Margin %` depending on historical statistical deviation expected.
 
