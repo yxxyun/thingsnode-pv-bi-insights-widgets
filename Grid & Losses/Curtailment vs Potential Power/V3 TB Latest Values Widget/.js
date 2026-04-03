@@ -320,8 +320,12 @@ function fetchLiveData() {
     var entTypeStr = (typeof entityType === 'string') ? entityType : entityId.entityType;
     if (!entIdStr) { renderNoData(); return; }
 
-    var actualKeys = parseCommaList(s.actualPowerKeys || 'active_power');
-    var setpointKeys = parseCommaList(s.setpointKeys || 'setpoint_active_power, curtailment_limit, power_limit');
+    /* Backwards compatibility */
+    var aKeysStr = s.actualPowerKeys || s.actualPowerKey || 'active_power';
+    var setKeysStr = s.setpointKeys || s.setpointKey || 'setpoint_active_power, curtailment_limit, power_limit';
+
+    var actualKeys = parseCommaList(aKeysStr);
+    var setpointKeys = parseCommaList(setKeysStr);
     var capacityKey = s.plantCapacityKey || 'Plant Total Capacity';
 
     var tsKeys = actualKeys.concat(setpointKeys).join(',');
@@ -352,15 +356,23 @@ function fetchLiveData() {
     var attrService = self.ctx.attributeService;
     if (attrService && capacityKey) {
         var entityObj = { id: entIdStr, entityType: entTypeStr };
-        attrService.getEntityAttributes(entityObj, 'SERVER_SCOPE', [capacityKey])
-            .subscribe(
-                function (data) {
-                    var found = data.find(function (a) { return a.key === capacityKey; });
-                    if (found) self._capacityVal = found.value;
-                    fetchTs();
-                },
-                function () { fetchTs(); }
-            );
+        try {
+            attrService.getEntityAttributes(entityObj, 'SERVER_SCOPE', [capacityKey])
+                .subscribe(
+                    function (data) {
+                        try {
+                            if (data && Array.isArray(data)) {
+                                var found = data.find(function (a) { return a.key === capacityKey; });
+                                if (found) self._capacityVal = found.value;
+                            }
+                        } catch (e) { console.warn("Error parsing capacity attribute", e); }
+                        fetchTs();
+                    },
+                    function () { fetchTs(); }
+                );
+        } catch (e) {
+            fetchTs();
+        }
     } else {
         fetchTs();
     }
@@ -371,8 +383,11 @@ function processLiveTimeSeries(rawData) {
     isLiveData = true;
     updateStatusBadge('live');
 
-    var actualKeys = parseCommaList(s.actualPowerKeys || 'active_power');
-    var setpointKeys = parseCommaList(s.setpointKeys || 'setpoint_active_power, curtailment_limit, power_limit');
+    var aKeysStr = s.actualPowerKeys || s.actualPowerKey || 'active_power';
+    var setKeysStr = s.setpointKeys || s.setpointKey || 'setpoint_active_power, curtailment_limit, power_limit';
+
+    var actualKeys = parseCommaList(aKeysStr);
+    var setpointKeys = parseCommaList(setKeysStr);
 
     var rawActual = null;
     for (var i = 0; i < actualKeys.length; i++) {
