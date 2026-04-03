@@ -1,8 +1,9 @@
-{
-    "schema": {
-        "type": "object",
-        "title": "Settings",
-        "properties": {}
-    },
-    "form": []
-}
+[
+    {
+        "id": "dummyField",
+        "name": "Dummy Field",
+        "type": "text",
+        "default": "",
+        "helpText": "This widget uses an inline UI for its settings via the top right corner since it is a Timeseries widget."
+    }
+]
