@@ -233,7 +233,7 @@ function initChart() {
                     data: [],
                     borderColor: 'rgba(255, 255, 255, 0.5)',
                     borderWidth: 2,
-                    borderDash: [6, 4],
+                    segment: { borderDash: () => [6, 4] },
                     pointRadius: 0,
                     pointHoverRadius: 3,
                     pointHoverBackgroundColor: 'rgba(255,255,255,0.7)',
@@ -267,7 +267,7 @@ function initChart() {
                     fill: {
                         target: 1,
                         above: 'rgba(229, 57, 53, 0.4)',
-                        below: 'rgba(229, 57, 53, 0.4)'
+                        below: 'transparent'
                     },
                     order: 1
                 }
@@ -373,8 +373,9 @@ function getTimeBounds(timeframeStr) {
     }
     else if (timeframeStr === 'prev_week') {
         var dayOfWeek2 = now.getDay() || 7;
-        startTs = new Date(y, m, d - dayOfWeek2 - 6, 0, 0, 0).getTime();
-        endTs = new Date(y, m, d - dayOfWeek2 + 1, 23, 59, 59).getTime();
+        var thisMondayOffset = dayOfWeek2 - 1;
+        startTs = new Date(y, m, d - thisMondayOffset - 7, 0, 0, 0).getTime();
+        endTs   = new Date(y, m, d - thisMondayOffset - 1, 23, 59, 59).getTime();
     }
     else if (timeframeStr === 'this_month') {
         startTs = new Date(y, m, 1, 0, 0, 0).getTime();
@@ -399,13 +400,10 @@ function fetchLiveData() {
     }
 
     var ds = self.ctx.datasources[0];
-    var entityId = ds.entityId;
-    var entityType = ds.entityType;
-
-    if (!entityId || !entityType) { renderNoData(); return; }
-
-    var entIdStr = (typeof entityId === 'object') ? entityId.id : entityId;
-    var entTypeStr = (typeof entityType === 'string') ? entityType : entityId.entityType;
+    var rawEntityId = ds.entityId;
+    var entIdStr    = (rawEntityId && typeof rawEntityId === 'object') ? rawEntityId.id : rawEntityId;
+    var entTypeStr  = ds.entityType || (rawEntityId && rawEntityId.entityType) || null;
+    if (!entIdStr || !entTypeStr) { renderNoData(); return; }
 
     var actualKeys = parseCommaList(s.actualPowerKeys);
     var setpointKeys = parseCommaList(s.setpointKeys);
@@ -545,6 +543,9 @@ function processLiveTimeSeries(rawData, minTime, maxTime) {
     }
 
     /* Map actual to buckets */
+    var bucketSum    = new Array(bucketCount).fill(0);
+    var bucketCount2 = new Array(bucketCount).fill(0);
+
     for (var p = 0; p < rawActual.length; p++) {
         var tStamp = parseInt(rawActual[p].ts);
         var val = parseFloat(rawActual[p].value);
@@ -552,9 +553,13 @@ function processLiveTimeSeries(rawData, minTime, maxTime) {
 
         var tIdx = Math.floor((tStamp - minTime) / bucketSizeMs);
         if (tIdx >= 0 && tIdx < bucketCount) {
-            if (dataExported[tIdx] === null) dataExported[tIdx] = val;
-            else dataExported[tIdx] = (dataExported[tIdx] + val) / 2;
+            bucketSum[tIdx] += val;
+            bucketCount2[tIdx]++;
         }
+    }
+
+    for (var b2 = 0; b2 < bucketCount; b2++) {
+        dataExported[b2] = bucketCount2[b2] > 0 ? bucketSum[b2] / bucketCount2[b2] : null;
     }
 
     /* Curtailment Envelope Step */
