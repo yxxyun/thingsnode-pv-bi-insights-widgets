@@ -10,5 +10,17 @@
     "name": "Capacity Unit (W, kW, MW)",
     "type": "text",
     "default": "MW"
+  },
+  {
+    "id": "targetAssetProfiles",
+    "name": "Target Asset Profiles (comma separated, leave empty for all)",
+    "type": "text",
+    "default": "SolarPlant"
+  },
+  {
+    "id": "strictDuckTyping",
+    "name": "Use Duck Typing (Map if entity has lat, lon, and capacity)",
+    "type": "boolean",
+    "default": true
   }
 ]

@@ -24,30 +24,41 @@ For each site mapped from the dashboard:
    - Extra metrics: `rar_lkr` shown as million LKR, and `cf_status` dynamically colored.
 5. Floating dynamic stats bar tracks overall counts per status category.
 
-## 2) Entity Mapping and Telemetry Requirements
-The widget connects directly to individual Assets rather than expecting a pre-compiled JSON payload. This is done by adding a Data Source tied to an **Entity Alias** (e.g. "Entity Group" or "Assets by type") so the map fetches data for all underlying plants simultaneously.
+## 2) Entity Mapping and Dynamic Hierarchy
+This widget is natively built to dynamically resolve hierarchical assets, enabling you to select a single root asset (like "Windforce Plants" or "SCADA Power Plants") and automatically map all underlying Power Plants. This scales perfectly to future implementations since it relies on ThingsBoard robust Relation Queries instead of hardcoded profiles.
 
-**Required Mapping Keys (Attributes):**
+**Recommended ThingsBoard Alias Setup:**
+We recommend creating an alias called "Mapped Assets" (or similar) built natively for dynamic traversal:
+1. **Filter type:** Relations Query (or Asset Search Query for TB 3.3+)
+2. **Root entity:** Entity from Dashboard State (parameter name: `SelectedAsset`)
+3. **Direction:** From
+4. **Max relation level:** 10 (or high enough to reach the plants)
+5. **Filters:** Target entity type `ASSET` (and/or `DEVICE`), Relation type `Contains`.
+
+The widget inherently maps any descendant entity that qualifies as a "plant" while ignoring overviews or blocks dynamically.
+
+**Required Mapping Keys (Attributes / Telemetry):**
 - `latitude` or `lat` (number)
 - `longitude` or `lon` (number)
 - `Plant Total Capacity` or `capacity` (number)
 
-**Optional Telemetry / Attributes:**
+**Optional Mapping Keys:**
 - `plant_name` or `name` (string - custom label)
 - `status` (`healthy`/`warning`/`fault`)
 - `rar_lkr` (number - Revenue at risk)
 - `cf_status` (string - capacity factor status)
 
-*Note: You can map either the exact database Key Name or edit its UI visual Label to match, the widget will detect both.*
+*Note: You can map either the exact database Key Name or edit its UI visual Label in the data source configuration to match, the widget will detect both automatically.*
 
-## 3) Units (Input vs Output)
-- Capacity units are now **fully configurable** in the widget's "Settings" tab (e.g., `W`, `kW`, `MW`). The map dynamically converts the raw attribute to `MW` internally solely for dot scaling, but will display your chosen raw unit dynamically in the Tooltips and Legends.
-- Revenue-at-Risk `rar` is hardcoded to be processed into `M LKR` (assumes raw feed is in LKR).
+## 3) Units and Dynamic Filtering Settings
+- **Capacity Units:** Capacity units are fully configurable in the widget's "Settings" tab (e.g., `W`, `kW`, `MW`). The map dynamically converts the raw attribute to `MW` internally solely for dot scaling, but will display your chosen raw unit dynamically in the Tooltips.
+- **Target Asset Profiles:** You can explicitly define valid profiles (e.g., `SolarPlant`) as a comma-separated list in the Widget Settings. Leave it empty to allow any profile.
+- **Strict Duck-Typing (Dynamic Filtering):** Enabled by default via the Widget Settings. Rather than checking explicit hierarchy types to exclude "Blocks" or "Overviews", the widget requires an entity to possess `latitude`, `longitude`, AND `Plant Total Capacity`. If an entity has capacity, it naturally represents the top-level Plant. This provides absolute compatibility without hardcoding profile names into the JS logic!
 
 ## 4) ThingsBoard setup checklist
-1. Map an Entity Alias that captures multiple assets (Avoid single-asset alias).
+1. Map a **Relations Query** Entity Alias from the Dashboard State (`SelectedAsset`).
 2. Add the widget to the dashboard as `Latest values`.
-3. In Data Sources, select your multi-asset Alias.
-4. Add all matching Data Keys (`lat`, `lon`, `Plant Total Capacity`, `status`, etc.).
-5. Under the *Settings* tab, set your `Capacity Unit (W, kW, MW)`.
-6. Ensure your assets have coordinates populated and `status` values standardized.
+3. In Data Sources, select your alias and map your Data Keys (`lat`, `lon`, `Plant Total Capacity`, `status`, etc.).
+4. Under the *Settings* tab, set your `Capacity Unit (W, kW, MW)`.
+5. Under the *Settings* tab, configure your `Target Asset Profiles` (e.g., `SolarPlant, WindPlant`) or leave it empty to rely completely on `Strict Duck-Typing` fallback.
+6. Ensure your plant assets have coordinates and capacity populated.

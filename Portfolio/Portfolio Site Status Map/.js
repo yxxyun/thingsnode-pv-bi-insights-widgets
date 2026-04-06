@@ -109,6 +109,7 @@ self.onDataUpdated = function () {
         if (!sitesMap[entityName]) {
             sitesMap[entityName] = { 
                 entityName: entityName,
+                profileName: dsData.datasource.entityProfileName,
                 name: entityName // Default to entity name unless 'plant_name' is mapped
             };
         }
@@ -140,15 +141,53 @@ self.onDataUpdated = function () {
         }
     });
 
-    // Convert map to array
+    // Read dynamic settings for filtering
+    var targetProfilesStr = self.ctx.settings.targetAssetProfiles;
+    var targetProfiles = [];
+    if (targetProfilesStr && targetProfilesStr.trim() !== '') {
+        targetProfiles = targetProfilesStr.split(',').map(function(p) {
+            return p.toLowerCase().replace(/\s+/g, '');
+        });
+    }
+
+    // Convert map to array and dynamically filter by valid Profile and target features
     var sites = Object.keys(sitesMap).map(function(key) {
         return sitesMap[key];
+    }).filter(function(site) {
+        // Must have valid coordinates. This is a basic fallback that excludes pure logical unmapped nodes.
+        if (site.lat === undefined || site.lon === undefined) {
+            return false;
+        }
+
+        // Strict Duck Typing: If enabled, only map entities that ALSO have a 'capacity' configuration.
+        // This inherently ensures that we map Power Plants, while excluding 'Blocks' or 'Overviews'
+        // which typically would not have a plant-level capacity attribute, ensuring dynamic adaptability.
+        var useDuckTyping = self.ctx.settings.strictDuckTyping !== false; // true by default
+        if (useDuckTyping && site.capacity === undefined) {
+            return false;
+        }
+
+        // Target Profile Filtering: If the user provided a comma-separated list of accepted profiles.
+        if (targetProfiles.length > 0 && site.profileName) {
+            var pName = site.profileName.toLowerCase().replace(/\s+/g, '');
+            if (targetProfiles.indexOf(pName) === -1) {
+                // Return false if the profile is defined but does not match any target
+                return false;
+            }
+        }
+        
+        return true;
     });
 
-    if (sites.length === 0) return;
-
-    // 3. Clear old markers
+    // Always clear old markers before rendering
     self.layerGroup.clearLayers();
+
+    if (sites.length === 0) {
+        $el.find('.js-stats').html(
+            '<span class="stat-ok">0</span> · <span class="stat-warn">0</span> · <span class="stat-fault">0</span>'
+        );
+        return;
+    }
 
     // 4. Track stats
     var countOk = 0;
