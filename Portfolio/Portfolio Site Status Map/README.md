@@ -1,64 +1,93 @@
-# Portfolio Site Status Map - Quick Read and Setup
+# Portfolio Site Status Map
 
-## 0) What this means in a PV portfolio
-- Geospatial health view of all sites with marker size dynamically tracking plant scale and color tracking health status.
-- Designed with an ultra-legible, high-contrast dark blue map theme with white lettering for maximum visibility.
-- Highly useful for operations centers to spot geographical risk patterns instantly.
+## Overview
+- Shows mapped power plant locations on a Leaflet map.
+- Marker size tracks plant capacity.
+- Marker color tracks plant status.
+- The widget now supports dashboard-state driven hierarchy mapping using `SelectedAsset`.
 
-## 1) Calculations and rendering logic
-For each site mapped from the dashboard:
-1. Coordinates are extracted via `latitude`/`lat` and `longitude`/`lon`.
-2. Marker size dynamically compares plant scale based on `Plant Total Capacity`:
-   - Normalized into MW internally (based on UI Setting unit W/kW/MW)
-   - `>=50` MW -> large dot
-   - `>=10` MW -> medium dot
-   - else -> small dot
-3. Marker color is determined by the `status` telemetry:
-   - `healthy` -> green
-   - `warning` -> amber
-   - `fault` -> red
-4. Tooltip dynamically parses:
-   - Site name (via `plant_name` attribute, defaults to Entity Name)
-   - Capacity + Base Unit suffix
-   - Operational Status
-   - Extra metrics: `rar_lkr` shown as million LKR, and `cf_status` dynamically colored.
-5. Floating dynamic stats bar tracks overall counts per status category.
+This widget does not hardcode hierarchy names such as `Windforce Plants`, `SCADA Power Plants`, `Windforce Overview`, `Power Plant`, or `Block`. It only merges datasource rows and filters for plant-like entities based on profile and data availability.
 
-## 2) Entity Mapping and Dynamic Hierarchy
-This widget is natively built to dynamically resolve hierarchical assets, enabling you to select a single root asset (like "Windforce Plants" or "SCADA Power Plants") and automatically map all underlying Power Plants. This scales perfectly to future implementations since it relies on ThingsBoard robust Relation Queries instead of hardcoded profiles.
+## Supported datasource patterns
 
-**Recommended ThingsBoard Alias Setup:**
-We recommend creating an alias called "Mapped Assets" (or similar) built natively for dynamic traversal:
-1. **Filter type:** Relations Query (or Asset Search Query for TB 3.3+)
-2. **Root entity:** Entity from Dashboard State (parameter name: `SelectedAsset`)
-3. **Direction:** From
-4. **Max relation level:** 10 (or high enough to reach the plants)
-5. **Filters:** Target entity type `ASSET` (and/or `DEVICE`), Relation type `Contains`.
+### Recommended setup: `SelectedAsset` hierarchy mapping
+Configure the widget with two datasources:
 
-The widget inherently maps any descendant entity that qualifies as a "plant" while ignoring overviews or blocks dynamically.
+1. `Selected Asset`
+   - Alias type: `Entity from Dashboard State`
+   - State entity parameter: `SelectedAsset`
 
-**Required Mapping Keys (Attributes / Telemetry):**
-- `latitude` or `lat` (number)
-- `longitude` or `lon` (number)
-- `Plant Total Capacity` or `capacity` (number)
+2. `Selected Asset Descendants`
+   - Alias type: `Relations Query` (or equivalent asset search query)
+   - Root entity: dashboard state entity `SelectedAsset`
+   - Direction: `From`
+   - Relation type: `contains`
+   - Max relation level: high enough to reach plants
+   - Target entity type: `ASSET`
 
-**Optional Mapping Keys:**
-- `plant_name` or `name` (string - custom label)
-- `status` (`healthy`/`warning`/`fault`)
-- `rar_lkr` (number - Revenue at risk)
-- `cf_status` (string - capacity factor status)
+Map the same keys on both datasources.
 
-*Note: You can map either the exact database Key Name or edit its UI visual Label in the data source configuration to match, the widget will detect both automatically.*
+### Backward-compatible setup
+The old single-alias `All Plants` pattern still works. If the datasource already returns only plant assets, the widget will render them as before.
 
-## 3) Units and Dynamic Filtering Settings
-- **Capacity Units:** Capacity units are fully configurable in the widget's "Settings" tab (e.g., `W`, `kW`, `MW`). The map dynamically converts the raw attribute to `MW` internally solely for dot scaling, but will display your chosen raw unit dynamically in the Tooltips.
-- **Target Asset Profiles:** You can explicitly define valid profiles (e.g., `SolarPlant`) as a comma-separated list in the Widget Settings. Leave it empty to allow any profile.
-- **Strict Duck-Typing (Dynamic Filtering):** Enabled by default via the Widget Settings. Rather than checking explicit hierarchy types to exclude "Blocks" or "Overviews", the widget requires an entity to possess `latitude`, `longitude`, AND `Plant Total Capacity`. If an entity has capacity, it naturally represents the top-level Plant. This provides absolute compatibility without hardcoding profile names into the JS logic!
+## Required and optional keys
 
-## 4) ThingsBoard setup checklist
-1. Map a **Relations Query** Entity Alias from the Dashboard State (`SelectedAsset`).
-2. Add the widget to the dashboard as `Latest values`.
-3. In Data Sources, select your alias and map your Data Keys (`lat`, `lon`, `Plant Total Capacity`, `status`, etc.).
-4. Under the *Settings* tab, set your `Capacity Unit (W, kW, MW)`.
-5. Under the *Settings* tab, configure your `Target Asset Profiles` (e.g., `SolarPlant, WindPlant`) or leave it empty to rely completely on `Strict Duck-Typing` fallback.
-6. Ensure your plant assets have coordinates and capacity populated.
+### Required for mapping
+- `latitude` or `lat`
+- `longitude` or `lon`
+- `Plant Total Capacity` or `capacity` when `strictDuckTyping = true`
+
+### Optional
+- `plant_name` or `name`
+- `status`
+- `rar_lkr`
+- `cf_status`
+
+The widget checks both the actual key name and the key label configured in the datasource.
+
+## How filtering works
+- Datasource rows are merged by stable entity identity:
+  - `entityId` first
+  - fallback to `entityType + entityName`
+- If `targetAssetProfiles` is set, only those profiles are allowed.
+- If `strictDuckTyping` is enabled, an entity must have:
+  - valid latitude
+  - valid longitude
+  - valid capacity
+
+This keeps the logic generic:
+- container assets without coordinates are ignored
+- block assets without plant-level capacity are ignored
+- plant assets with map data are shown
+
+## Expected behavior by selection
+
+| `SelectedAsset` value | Expected result |
+|---|---|
+| `Windforce Plants` | All descendant plants are mapped |
+| `SCADA Power Plants` | Plants under that branch are mapped |
+| `Windforce Overview` | Plants under that branch are mapped |
+| `Power Plant 1` | Only that plant is mapped |
+| `Block 1` | Nothing is mapped |
+
+The selected-plant case works because the root datasource contributes the selected asset itself, while the descendants datasource contributes lower-level assets under it.
+
+## Widget settings
+- `Widget Title`: map title
+- `Capacity Unit (W, kW, MW)`: display unit, also used to normalize marker sizing
+- `Target Asset Profiles`: comma-separated allowed profiles, default `SolarPlant`
+- `Use Duck Typing`: when enabled, only entities with lat, lon, and capacity are mapped
+
+## ThingsBoard setup checklist
+1. Create the `Selected Asset` alias from dashboard state parameter `SelectedAsset`.
+2. Create the `Selected Asset Descendants` alias using outbound `contains` relations.
+3. Add this widget as a `Latest values` widget.
+4. Add both datasources to the widget.
+5. Map the same data keys on both datasources.
+6. Keep `Target Asset Profiles = SolarPlant` unless your plant profile uses a different name.
+7. Make sure plant assets have coordinates and plant-level capacity.
+
+## Notes
+- No hierarchy names are hardcoded in the widget JS.
+- The widget assumes parent-to-child traversal uses outbound `contains` relations.
+- If you clear `Target Asset Profiles`, the widget can still work through duck typing alone.

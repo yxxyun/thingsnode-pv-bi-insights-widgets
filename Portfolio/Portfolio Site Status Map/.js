@@ -23,12 +23,81 @@ self.onInit = function () {
     if (typeof L === 'undefined') {
         var script = document.createElement('script');
         script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-        script.onload = function () { startWidget(); };
+        script.onload = function () {
+            startWidget();
+        };
         document.head.appendChild(script);
     } else {
         startWidget();
     }
 };
+
+var KEY_ALIASES = {
+    lat: ['latitude', 'lat'],
+    lon: ['longitude', 'lon'],
+    capacity: ['plant total capacity', 'capacity'],
+    name: ['plant_name', 'name'],
+    status: ['status'],
+    rarLkr: ['rar_lkr'],
+    cfStatus: ['cf_status']
+};
+
+function normalizeKey(value) {
+    return (value || '').toString().trim().toLowerCase();
+}
+
+function normalizeProfile(value) {
+    return normalizeKey(value).replace(/\s+/g, '');
+}
+
+function getEntityIdValue(entityId) {
+    if (!entityId) {
+        return '';
+    }
+    if (typeof entityId === 'string') {
+        return entityId;
+    }
+    if (entityId.id) {
+        return entityId.id;
+    }
+    return '';
+}
+
+function getEntityKey(datasource) {
+    if (!datasource) {
+        return '';
+    }
+
+    var entityId = getEntityIdValue(datasource.entityId);
+    if (entityId) {
+        return entityId;
+    }
+
+    var entityType = datasource.entityType || 'ENTITY';
+    var entityName = datasource.entityName || datasource.name || 'unknown';
+    return entityType + ':' + entityName;
+}
+
+function matchesAnyKey(dataKey, aliases) {
+    var keyName = normalizeKey(dataKey && dataKey.name);
+    var keyLabel = normalizeKey(dataKey && dataKey.label);
+
+    return aliases.indexOf(keyName) > -1 || aliases.indexOf(keyLabel) > -1;
+}
+
+function renderEmptyState() {
+    if (self.layerGroup) {
+        self.layerGroup.clearLayers();
+    }
+
+    self.ctx.$widget.find('.js-stats').html(
+        '<span class="stat-ok">0</span> | <span class="stat-warn">0</span> | <span class="stat-fault">0</span>'
+    );
+
+    if (self.ctx.detectChanges) {
+        self.ctx.detectChanges();
+    }
+}
 
 function startWidget() {
     self.updateDom();
@@ -37,7 +106,7 @@ function startWidget() {
 }
 
 // --------------------------------------------------
-//  DOM setup
+// DOM setup
 // --------------------------------------------------
 self.updateDom = function () {
     var s = self.ctx.settings;
@@ -47,12 +116,14 @@ self.updateDom = function () {
 };
 
 // --------------------------------------------------
-//  Map initialization
+// Map initialization
 // --------------------------------------------------
 function initMap() {
     var $el = self.ctx.$widget;
     var container = $el.find('.js-map-canvas')[0];
-    if (!container) return;
+    if (!container) {
+        return;
+    }
 
     // Cleanup if re-initializing
     if (self.map) {
@@ -60,170 +131,173 @@ function initMap() {
         self.map = null;
     }
 
-    // Initialize map — centered on Sri Lanka
+    // Initialize map centered on Sri Lanka
     self.map = L.map(container, {
         center: [7.87, 80.70],
         zoom: 7,
         zoomControl: true,
         attributionControl: false,
-        preferCanvas: true  // better perf for many markers
+        preferCanvas: true
     });
 
-    // Reverting to OpenStreetMap to restore the requested land and water colors
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19
     }).addTo(self.map);
 
-    // Move zoom control to top-right
     self.map.zoomControl.setPosition('topright');
-
     self.layerGroup = L.layerGroup().addTo(self.map);
 
-    // Load initial data
     self.onDataUpdated();
 }
 
 // --------------------------------------------------
-//  Data handler — render markers
+// Data handler - render markers
 // --------------------------------------------------
 self.onDataUpdated = function () {
-    if (!self.map || !self.layerGroup) return;
+    if (!self.map || !self.layerGroup) {
+        return;
+    }
 
     var $el = self.ctx.$widget;
 
-    // 1. Check if data exists
     if (!self.ctx.data || self.ctx.data.length === 0) {
+        renderEmptyState();
         return;
     }
 
-    // 2. Build Sites Map from individual asset attributes/telemetry
+    // Merge the selected asset datasource and descendant datasource by entity id.
     var sitesMap = {};
 
     self.ctx.data.forEach(function (dsData) {
-        if (!dsData.data || dsData.data.length === 0) return;
+        if (!dsData || !dsData.datasource || !dsData.data || dsData.data.length === 0) {
+            return;
+        }
 
-        // Group by entity name (since the map widget will often aggregate multiple entities)
-        var entityName = dsData.datasource.entityName;
-        if (!entityName) return;
+        var datasource = dsData.datasource;
+        var entityKey = getEntityKey(datasource);
+        if (!entityKey) {
+            return;
+        }
 
-        if (!sitesMap[entityName]) {
-            sitesMap[entityName] = { 
+        if (!sitesMap[entityKey]) {
+            var entityName = datasource.entityName || datasource.name || 'Unknown';
+            sitesMap[entityKey] = {
+                entityKey: entityKey,
+                entityId: getEntityIdValue(datasource.entityId),
+                entityType: datasource.entityType,
                 entityName: entityName,
-                profileName: dsData.datasource.entityProfileName,
-                name: entityName // Default to entity name unless 'plant_name' is mapped
+                profileName: datasource.entityProfileName || '',
+                name: entityName
             };
         }
 
-        var keyName = dsData.dataKey.name;
-        var keyLabel = dsData.dataKey.label;
-
-        // Check both 'name' and 'label' (in case user re-labeled in widget configuration)
-        var checkKey = function(k1, k2) { 
-            return keyName === k1 || keyLabel === k1 || keyName === k2 || keyLabel === k2; 
-        };
-
+        var site = sitesMap[entityKey];
         var latestData = dsData.data[0][1];
-        
-        if (checkKey('latitude', 'lat')) {
-            sitesMap[entityName].lat = latestData;
-        } else if (checkKey('longitude', 'lon')) {
-            sitesMap[entityName].lon = latestData;
-        } else if (checkKey('Plant Total Capacity', 'capacity')) {
-            sitesMap[entityName].capacity = parseFloat(latestData);
-        } else if (checkKey('plant_name', 'name')) {
-            sitesMap[entityName].name = latestData;
-        } else if (checkKey('status', 'status')) {
-            sitesMap[entityName].status = latestData;
-        } else if (checkKey('rar_lkr', 'rar_lkr')) {
-            sitesMap[entityName].rar_lkr = parseFloat(latestData);
-        } else if (checkKey('cf_status', 'cf_status')) {
-            sitesMap[entityName].cf_status = latestData;
+
+        if (!site.profileName && datasource.entityProfileName) {
+            site.profileName = datasource.entityProfileName;
+        }
+
+        if (matchesAnyKey(dsData.dataKey, KEY_ALIASES.lat)) {
+            site.lat = latestData;
+        } else if (matchesAnyKey(dsData.dataKey, KEY_ALIASES.lon)) {
+            site.lon = latestData;
+        } else if (matchesAnyKey(dsData.dataKey, KEY_ALIASES.capacity)) {
+            var capacity = parseFloat(latestData);
+            if (!isNaN(capacity)) {
+                site.capacity = capacity;
+            }
+        } else if (matchesAnyKey(dsData.dataKey, KEY_ALIASES.name)) {
+            site.name = latestData || site.name;
+        } else if (matchesAnyKey(dsData.dataKey, KEY_ALIASES.status)) {
+            site.status = latestData;
+        } else if (matchesAnyKey(dsData.dataKey, KEY_ALIASES.rarLkr)) {
+            var rarValue = parseFloat(latestData);
+            if (!isNaN(rarValue)) {
+                site.rar_lkr = rarValue;
+            }
+        } else if (matchesAnyKey(dsData.dataKey, KEY_ALIASES.cfStatus)) {
+            site.cf_status = latestData;
         }
     });
 
-    // Read dynamic settings for filtering
     var targetProfilesStr = self.ctx.settings.targetAssetProfiles;
     var targetProfiles = [];
     if (targetProfilesStr && targetProfilesStr.trim() !== '') {
-        targetProfiles = targetProfilesStr.split(',').map(function(p) {
-            return p.toLowerCase().replace(/\s+/g, '');
+        targetProfiles = targetProfilesStr.split(',').map(function (profile) {
+            return normalizeProfile(profile);
         });
     }
 
-    // Convert map to array and dynamically filter by valid Profile and target features
-    var sites = Object.keys(sitesMap).map(function(key) {
+    var useDuckTyping = self.ctx.settings.strictDuckTyping !== false;
+
+    var sites = Object.keys(sitesMap).map(function (key) {
         return sitesMap[key];
-    }).filter(function(site) {
-        // Must have valid coordinates. This is a basic fallback that excludes pure logical unmapped nodes.
-        if (site.lat === undefined || site.lon === undefined) {
+    }).filter(function (site) {
+        var lat = parseFloat(site.lat);
+        var lon = parseFloat(site.lon);
+
+        if (isNaN(lat) || isNaN(lon)) {
             return false;
         }
 
-        // Strict Duck Typing: If enabled, only map entities that ALSO have a 'capacity' configuration.
-        // This inherently ensures that we map Power Plants, while excluding 'Blocks' or 'Overviews'
-        // which typically would not have a plant-level capacity attribute, ensuring dynamic adaptability.
-        var useDuckTyping = self.ctx.settings.strictDuckTyping !== false; // true by default
-        if (useDuckTyping && site.capacity === undefined) {
+        if (useDuckTyping && (site.capacity === undefined || isNaN(site.capacity))) {
             return false;
         }
 
-        // Target Profile Filtering: If the user provided a comma-separated list of accepted profiles.
-        if (targetProfiles.length > 0 && site.profileName) {
-            var pName = site.profileName.toLowerCase().replace(/\s+/g, '');
-            if (targetProfiles.indexOf(pName) === -1) {
-                // Return false if the profile is defined but does not match any target
+        if (targetProfiles.length > 0) {
+            var profileName = normalizeProfile(site.profileName);
+            if (!profileName || targetProfiles.indexOf(profileName) === -1) {
                 return false;
             }
         }
-        
+
         return true;
     });
 
-    // Always clear old markers before rendering
     self.layerGroup.clearLayers();
 
     if (sites.length === 0) {
-        $el.find('.js-stats').html(
-            '<span class="stat-ok">0</span> · <span class="stat-warn">0</span> · <span class="stat-fault">0</span>'
-        );
+        renderEmptyState();
         return;
     }
 
-    // 4. Track stats
     var countOk = 0;
     var countWarn = 0;
     var countFault = 0;
 
-    // 5. Get current card font-size for scaling marker radii
     var $card = $el.find('.map-card');
     var cardFont = parseFloat($card.css('font-size')) || 14;
-    var scaleFactor = cardFont / 14; 
+    var scaleFactor = cardFont / 14;
 
-    // 6. Render markers
     var bounds = [];
     var displayUnit = (self.ctx.settings.capacityUnit || 'MW').trim();
 
     sites.forEach(function (site) {
-        // Validate coordinates
         var lat = parseFloat(site.lat);
         var lon = parseFloat(site.lon);
-        if (isNaN(lat) || isNaN(lon)) return;
+        if (isNaN(lat) || isNaN(lon)) {
+            return;
+        }
 
-        // Process capacity setting for accurate scaling
         var capVal = site.capacity || 0;
         var capMW = capVal;
         var unitUpperCase = displayUnit.toUpperCase();
-        if (unitUpperCase === 'W') capMW = capVal / 1000000;
-        else if (unitUpperCase === 'KW') capMW = capVal / 1000;
+        if (unitUpperCase === 'W') {
+            capMW = capVal / 1000000;
+        } else if (unitUpperCase === 'KW') {
+            capMW = capVal / 1000;
+        }
 
-        // Radius based on capacity (larger spacing for better visibility, e.g. large plants >= 50MW)
         var baseRadius = 6;
-        if (capMW >= 50) baseRadius = 14;
-        else if (capMW >= 10) baseRadius = 10;
-        
+        if (capMW >= 50) {
+            baseRadius = 14;
+        } else if (capMW >= 10) {
+            baseRadius = 10;
+        }
+
         var radius = Math.max(4, baseRadius * scaleFactor);
 
-        // Color based on status
         var color = '#66BB6A';
         var status = (site.status || 'healthy').toLowerCase();
 
@@ -237,7 +311,6 @@ self.onDataUpdated = function () {
             countOk++;
         }
 
-        // Create marker
         var marker = L.circleMarker([lat, lon], {
             radius: radius,
             fillColor: color,
@@ -247,7 +320,6 @@ self.onDataUpdated = function () {
             fillOpacity: 0.75
         });
 
-        // Build tooltip HTML
         var name = site.name || 'Unknown';
         var capText = capVal + ' ' + displayUnit;
         var statusText = '<span style="color:' + color + '; text-transform:uppercase; font-weight:600;">' + status + '</span>';
@@ -262,7 +334,7 @@ self.onDataUpdated = function () {
         }
 
         if (site.cf_status) {
-            var cfColor = (site.cf_status.toLowerCase() === 'warning') ? '#FFC107' : '#66BB6A';
+            var cfColor = site.cf_status.toLowerCase() === 'warning' ? '#FFC107' : '#66BB6A';
             tooltipHtml += '<div class="tt-detail">CF: <span style="color:' + cfColor + ';">' + site.cf_status + '</span></div>';
         }
 
@@ -277,28 +349,25 @@ self.onDataUpdated = function () {
         bounds.push([lat, lon]);
     });
 
-    // 7. Auto-fit map to markers if we have data
     if (bounds.length > 1) {
         self.map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
     } else if (bounds.length === 1) {
         self.map.setView(bounds[0], 10);
     }
 
-    // 8. Update header stats
     var statsHtml =
-        '<span class="stat-ok">' + countOk + '</span> · ' +
-        '<span class="stat-warn">' + countWarn + '</span> · ' +
+        '<span class="stat-ok">' + countOk + '</span> | ' +
+        '<span class="stat-warn">' + countWarn + '</span> | ' +
         '<span class="stat-fault">' + countFault + '</span>';
     $el.find('.js-stats').html(statsHtml);
 
-    // 9. Angular change detection
     if (self.ctx.detectChanges) {
         self.ctx.detectChanges();
     }
 };
 
 // --------------------------------------------------
-//  Responsive scaling
+// Responsive scaling
 // --------------------------------------------------
 self.onResize = function () {
     var $el = self.ctx.$widget;
@@ -306,22 +375,24 @@ self.onResize = function () {
     var w = $el.width();
     var h = $el.height();
 
-    // Card font drives legend sizes, header sizes, dot sizes
     var fromWidth = w / 30;
     var fromHeight = h / 16;
     var fontSize = Math.min(fromWidth, fromHeight);
-    if (fontSize < 8) fontSize = 8;
-    if (fontSize > 20) fontSize = 20;
+    if (fontSize < 8) {
+        fontSize = 8;
+    }
+    if (fontSize > 20) {
+        fontSize = 20;
+    }
     $card.css('font-size', fontSize + 'px');
 
-    // Invalidate map size
     if (self.map) {
         self.map.invalidateSize();
     }
 };
 
 // --------------------------------------------------
-//  Cleanup
+// Cleanup
 // --------------------------------------------------
 self.onDestroy = function () {
     if (self.map) {
