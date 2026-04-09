@@ -1289,9 +1289,11 @@ function buildSiteFromTelemetry(asset, telemetry, attributes) {
     var lon = parseFloat(tv('longitude'));
     var capacity = parseFloat(tv('Capacity'));
     var name = tv('name') || assetName;
-    var status = tv('status');
+    var rawStatus = tv('status');
+    var status = rawStatus !== null && rawStatus !== undefined ? String(rawStatus) : null;
     var rar_lkr = parseFloat(tv('rar_lkr'));
-    var cf_status = tv('cf_status');
+    var rawCfStatus = tv('cf_status');
+    var cf_status = rawCfStatus !== null && rawCfStatus !== undefined ? String(rawCfStatus) : null;
 
     return {
         entityId: assetId,
@@ -1708,7 +1710,8 @@ function renderMarkers(sites) {
         var radius = Math.max(4, baseRadius * scaleFactor);
 
         var color = '#66BB6A';
-        var status = (site.status || 'healthy').toLowerCase();
+        var rawStatus = site.status;
+        var status = (rawStatus !== null && rawStatus !== undefined ? String(rawStatus) : 'healthy').toLowerCase();
 
         if (status === 'warning') {
             color = '#FFC107';
@@ -1744,9 +1747,10 @@ function renderMarkers(sites) {
             tooltipHtml += '<div class="tt-rar">RaR: ' + rarM + ' M LKR</div>';
         }
 
-        if (site.cf_status) {
-            var cfColor = site.cf_status.toLowerCase() === 'warning' ? '#FFC107' : '#66BB6A';
-            tooltipHtml += '<div class="tt-detail">CF: <span style="color:' + cfColor + ';">' + site.cf_status + '</span></div>';
+        if (site.cf_status !== null && site.cf_status !== undefined) {
+            var cfStr = String(site.cf_status);
+            var cfColor = cfStr.toLowerCase() === 'warning' ? '#FFC107' : '#66BB6A';
+            tooltipHtml += '<div class="tt-detail">CF: <span style="color:' + cfColor + ';">' + cfStr + '</span></div>';
         }
 
         marker.bindTooltip(tooltipHtml, {
