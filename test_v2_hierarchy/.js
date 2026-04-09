@@ -9,7 +9,9 @@ var widgetRoot = null;
 var filterExpanded = false;
 var hwEntityDetailsCache = {};
 var hwChildRelationsCache = {};
+var hwEntityRoleCache = {};
 var hwSelectionSeq = 0;
+var ENTITY_ROLE_KEYS = ['isPlant', 'isPlantAgg'];
 
 function hwStateLog(stage, payload) {
     if (typeof console === 'undefined' || !console.log) return;
@@ -59,8 +61,285 @@ function getEntityProfile(entity) {
     return entity.assetProfileName || entity.deviceProfileName || entity.type || '';
 }
 
+function normalizeBooleanFlag(value) {
+    if (value === true || value === false) return value;
+    if (value === null || value === undefined) return null;
+
+    if (typeof value === 'number') {
+        return value !== 0;
+    }
+
+    var normalized = value.toString().trim().toLowerCase();
+    if (!normalized) return null;
+
+    if (normalized === 'true' || normalized === '1' || normalized === 'yes' ||
+        normalized === 'y' || normalized === 'on') {
+        return true;
+    }
+
+    if (normalized === 'false' || normalized === '0' || normalized === 'no' ||
+        normalized === 'n' || normalized === 'off') {
+        return false;
+    }
+
+    return null;
+}
+
+function normalizeAttributeMap(attributeData) {
+    if (!attributeData) {
+        return {};
+    }
+
+    if (Array.isArray(attributeData)) {
+        return attributeData.reduce(function(acc, entry) {
+            if (entry && entry.key !== undefined) {
+                acc[entry.key] = entry.value;
+            }
+            return acc;
+        }, {});
+    }
+
+    return attributeData;
+}
+
+function getAttributeValueCaseInsensitive(attributeMap, key) {
+    if (!attributeMap) return undefined;
+
+    if (Object.prototype.hasOwnProperty.call(attributeMap, key)) {
+        return attributeMap[key];
+    }
+
+    var target = normalizeName(key);
+    for (var attrKey in attributeMap) {
+        if (!Object.prototype.hasOwnProperty.call(attributeMap, attrKey)) continue;
+        if (normalizeName(attrKey) === target) {
+            return attributeMap[attrKey];
+        }
+    }
+
+    return undefined;
+}
+
+function hasAttributeValue(attributeMap, key) {
+    var value = getAttributeValueCaseInsensitive(attributeMap, key);
+    return value !== undefined && value !== null && !(typeof value === 'string' && value.trim() === '');
+}
+
+function getScopedAttributeUrl(entityType, entityId, scope, keys) {
+    return '/api/plugins/telemetry/' + (normalizeEntityType(entityType) || 'ASSET') + '/' + entityId +
+        '/values/attributes/' + scope + '?keys=' + encodeURIComponent((keys || []).join(','));
+}
+
+function fetchScopedEntityAttributes(entityRef, scope, keys) {
+    if (!entityRef || !entityRef.id || !isSupportedTraversalEntityType(entityRef.entityType)) {
+        return Promise.resolve({});
+    }
+
+    return tbGet(getScopedAttributeUrl(entityRef.entityType, entityRef.id, scope, keys)).then(function(resp) {
+        return normalizeAttributeMap(resp);
+    }).catch(function(error) {
+        hwStateWarn('entity_role_scope_failed', {
+            entity: summarizeEntityRef(entityRef),
+            scope: scope,
+            status: error && (error.status || error.statusCode || '')
+        });
+        return {};
+    });
+}
+
+function resolveEntityRoleFlags(entityRef) {
+    return fetchScopedEntityAttributes(entityRef, 'SERVER_SCOPE', ENTITY_ROLE_KEYS).then(function(serverAttrs) {
+        var missingPlant = !hasAttributeValue(serverAttrs, 'isPlant');
+        var missingPlantAgg = !hasAttributeValue(serverAttrs, 'isPlantAgg');
+
+        if (!missingPlant && !missingPlantAgg) {
+            return {
+                serverAttrs: serverAttrs,
+                sharedAttrs: {}
+            };
+        }
+
+        return fetchScopedEntityAttributes(entityRef, 'SHARED_SCOPE', ENTITY_ROLE_KEYS).then(function(sharedAttrs) {
+            return {
+                serverAttrs: serverAttrs,
+                sharedAttrs: sharedAttrs
+            };
+        });
+    }).then(function(result) {
+        var serverAttrs = result.serverAttrs || {};
+        var sharedAttrs = result.sharedAttrs || {};
+        var hasPlant = hasAttributeValue(serverAttrs, 'isPlant') || hasAttributeValue(sharedAttrs, 'isPlant');
+        var hasPlantAgg = hasAttributeValue(serverAttrs, 'isPlantAgg') || hasAttributeValue(sharedAttrs, 'isPlantAgg');
+        var rawPlant = hasAttributeValue(serverAttrs, 'isPlant')
+            ? getAttributeValueCaseInsensitive(serverAttrs, 'isPlant')
+            : getAttributeValueCaseInsensitive(sharedAttrs, 'isPlant');
+        var rawPlantAgg = hasAttributeValue(serverAttrs, 'isPlantAgg')
+            ? getAttributeValueCaseInsensitive(serverAttrs, 'isPlantAgg')
+            : getAttributeValueCaseInsensitive(sharedAttrs, 'isPlantAgg');
+
+        return {
+            hasPlant: hasPlant,
+            hasPlantAgg: hasPlantAgg,
+            isPlant: hasPlant ? normalizeBooleanFlag(rawPlant) : null,
+            isPlantAgg: hasPlantAgg ? normalizeBooleanFlag(rawPlantAgg) : null
+        };
+    });
+}
+
+function buildEntityRoleInfo(entity, resolvedFlags) {
+    var legacyPlant = isPlantProfile(getEntityProfile(entity));
+    var hasPlant = !!(resolvedFlags && resolvedFlags.hasPlant);
+    var hasPlantAgg = !!(resolvedFlags && resolvedFlags.hasPlantAgg);
+    var explicitPlant = hasPlant && resolvedFlags.isPlant === true;
+    var explicitPlantAgg = hasPlantAgg && resolvedFlags.isPlantAgg === true;
+    var roleInfo = {
+        isPlant: false,
+        isPlantAgg: false,
+        classification: 'other',
+        classificationSource: 'attributes_explicit_other',
+        hasExplicitFlags: hasPlant || hasPlantAgg,
+        hasPlantAttr: hasPlant,
+        hasPlantAggAttr: hasPlantAgg,
+        rawIsPlant: hasPlant ? resolvedFlags.isPlant : null,
+        rawIsPlantAgg: hasPlantAgg ? resolvedFlags.isPlantAgg : null,
+        legacyProfilePlant: legacyPlant
+    };
+
+    if (explicitPlantAgg && explicitPlant) {
+        roleInfo.isPlantAgg = true;
+        roleInfo.classification = 'aggregation';
+        roleInfo.classificationSource = 'attributes_conflict_prefer_aggregation';
+        return roleInfo;
+    }
+
+    if (explicitPlantAgg) {
+        roleInfo.isPlantAgg = true;
+        roleInfo.classification = 'aggregation';
+        roleInfo.classificationSource = 'attributes';
+        return roleInfo;
+    }
+
+    if (explicitPlant) {
+        roleInfo.isPlant = true;
+        roleInfo.classification = 'plant';
+        roleInfo.classificationSource = 'attributes';
+        return roleInfo;
+    }
+
+    if (!roleInfo.hasExplicitFlags) {
+        roleInfo.isPlant = legacyPlant;
+        roleInfo.classification = legacyPlant ? 'plant' : 'other';
+        roleInfo.classificationSource = legacyPlant ? 'profile_fallback' : 'profile_fallback_non_plant';
+        return roleInfo;
+    }
+
+    return roleInfo;
+}
+
+function getEntityRoleInfo(entity) {
+    if (!entity) {
+        return {
+            isPlant: false,
+            isPlantAgg: false,
+            classification: 'other',
+            classificationSource: 'missing_entity',
+            hasExplicitFlags: false
+        };
+    }
+
+    if (entity._hwRoleInfo) {
+        return entity._hwRoleInfo;
+    }
+
+    return buildEntityRoleInfo(entity, null);
+}
+
+function summarizeRoleInfo(entity) {
+    var roleInfo = getEntityRoleInfo(entity);
+    return {
+        isPlant: !!roleInfo.isPlant,
+        isPlantAgg: !!roleInfo.isPlantAgg,
+        classification: roleInfo.classification || 'other',
+        classificationSource: roleInfo.classificationSource || '',
+        hasExplicitFlags: !!roleInfo.hasExplicitFlags,
+        rawIsPlant: roleInfo.rawIsPlant,
+        rawIsPlantAgg: roleInfo.rawIsPlantAgg,
+        legacyProfilePlant: !!roleInfo.legacyProfilePlant
+    };
+}
+
+function ensureEntityRoleInfo(entity, entityRef) {
+    if (!entity) {
+        return Promise.resolve(null);
+    }
+
+    var resolvedRef = entityRef || getEntityRef(entity);
+    var cacheKey = getVisitedKey(resolvedRef);
+
+    if (entity._hwRoleInfo) {
+        return Promise.resolve(entity);
+    }
+
+    if (cacheKey && hwEntityRoleCache[cacheKey]) {
+        entity._hwRoleInfo = hwEntityRoleCache[cacheKey];
+        return Promise.resolve(entity);
+    }
+
+    if (!resolvedRef || !resolvedRef.id || !isSupportedTraversalEntityType(resolvedRef.entityType)) {
+        entity._hwRoleInfo = buildEntityRoleInfo(entity, null);
+        return Promise.resolve(entity);
+    }
+
+    return resolveEntityRoleFlags(resolvedRef).then(function(flags) {
+        var roleInfo = buildEntityRoleInfo(entity, flags);
+
+        hwStateLog('entity_role_resolved', {
+            entity: summarizeEntityRef(resolvedRef),
+            name: entity.name || '',
+            role: summarizeRoleInfo({
+                _hwRoleInfo: roleInfo
+            })
+        });
+
+        if (roleInfo.rawIsPlant && roleInfo.rawIsPlantAgg) {
+            hwStateWarn('entity_role_conflict', {
+                entity: summarizeEntityRef(resolvedRef),
+                role: summarizeRoleInfo({
+                    _hwRoleInfo: roleInfo
+                })
+            });
+        }
+
+        if ((roleInfo.classificationSource || '').indexOf('profile_fallback') === 0) {
+            hwStateLog('entity_role_profile_fallback', {
+                entity: summarizeEntityRef(resolvedRef),
+                name: entity.name || '',
+                role: summarizeRoleInfo({
+                    _hwRoleInfo: roleInfo
+                })
+            });
+        }
+
+        entity._hwRoleInfo = roleInfo;
+        hwEntityRoleCache[cacheKey] = roleInfo;
+        return entity;
+    }).catch(function(error) {
+        entity._hwRoleInfo = buildEntityRoleInfo(entity, null);
+        hwStateWarn('entity_role_fallback', {
+            entity: summarizeEntityRef(resolvedRef),
+            message: error && error.message ? error.message : '',
+            role: summarizeRoleInfo(entity)
+        });
+        return entity;
+    });
+}
+
+function isPlantAggregationEntity(entity) {
+    return !!getEntityRoleInfo(entity).isPlantAgg;
+}
+
 function isPlantEntity(entity) {
-    return isPlantProfile(getEntityProfile(entity));
+    return !!getEntityRoleInfo(entity).isPlant;
 }
 
 function getEntityIdValue(entityId) {
@@ -106,12 +385,17 @@ function summarizeEntityRef(entityRef) {
 function summarizeEntity(entity) {
     if (!entity) return null;
     var entityRef = getEntityRef(entity);
+    var roleInfo = getEntityRoleInfo(entity);
     return {
         id: entityRef && entityRef.id ? entityRef.id.substring(0, 8) : '',
         entityType: entityRef ? entityRef.entityType : 'UNKNOWN',
         name: entity.name || '',
         label: entity.label || '',
-        profile: getEntityProfile(entity)
+        profile: getEntityProfile(entity),
+        role: roleInfo.classification || 'other',
+        roleSource: roleInfo.classificationSource || '',
+        isPlant: !!roleInfo.isPlant,
+        isPlantAgg: !!roleInfo.isPlantAgg
     };
 }
 
@@ -175,7 +459,7 @@ function fetchEntityDetails(entityRef) {
 
     var cacheKey = getVisitedKey(entityRef);
     if (hwEntityDetailsCache[cacheKey]) {
-        return Promise.resolve(hwEntityDetailsCache[cacheKey]);
+        return ensureEntityRoleInfo(hwEntityDetailsCache[cacheKey], entityRef);
     }
 
     var url = getEntityUrl(entityRef.entityType, entityRef.id);
@@ -186,8 +470,10 @@ function fetchEntityDetails(entityRef) {
     return tbGet(url).then(function(entity) {
         if (!entity) return null;
         entity._entityType = normalizeEntityType(entityRef.entityType);
-        hwEntityDetailsCache[cacheKey] = entity;
-        return entity;
+        return ensureEntityRoleInfo(entity, entityRef).then(function(resolvedEntity) {
+            hwEntityDetailsCache[cacheKey] = resolvedEntity;
+            return resolvedEntity;
+        });
     }).catch(function(error) {
         hwStateWarn('entity_fetch_failed', {
             entity: summarizeEntityRef(entityRef),
@@ -296,7 +582,7 @@ function collectVisibleTreeRows(clickedRow) {
         }
 
         for (i = 0; i < selectorResults.length; i++) {
-            pushRow(findClickableRow(selectorResults[i]) || selectorResults[i]);
+            pushRow(getPreferredTreeRow(selectorResults[i]) || findClickableRow(selectorResults[i]) || selectorResults[i]);
         }
     }
 
@@ -545,7 +831,7 @@ function summarizeBreadcrumbSegment(segment) {
 }
 
 function getNodeBreadcrumb(nodeEl) {
-    var clickedRow = findClickableRow(nodeEl) || nodeEl;
+    var clickedRow = getPreferredTreeRow(nodeEl) || findClickableRow(nodeEl) || nodeEl;
     var rows = collectVisibleTreeRows(clickedRow);
     var descriptors = [];
     var clickedIndex = -1;
@@ -747,11 +1033,14 @@ function summarizeBranchScopeFact(fact) {
     return {
         entity: summarizeEntity(fact.entity),
         isPlant: !!fact.isPlant,
+        isPlantAgg: !!fact.isPlantAgg,
         isSelectedEntity: !!fact.isSelectedEntity,
         deepestPlantIndex: typeof fact.deepestPlantIndex === 'number' ? fact.deepestPlantIndex : -1,
         plantIndex: typeof fact.plantIndex === 'number' ? fact.plantIndex : -1,
         isDeepestPlant: !!fact.isDeepestPlant,
         scopeReason: fact.scopeReason || '',
+        roleSource: fact.roleSource || '',
+        classification: fact.classification || '',
         segment: summarizeBreadcrumbSegment(fact.segment)
     };
 }
@@ -764,59 +1053,92 @@ function determineBranchScopeRoot(resolvedPath, breadcrumb, selectedEntity) {
     }
 
     var pathOffset = resolvedPath.length - breadcrumb.length;
-    var deepestPlantIndex = -1;
 
-    resolvedPath.forEach(function(entity, index) {
-        if (isPlantEntity(entity)) {
-            deepestPlantIndex = index;
-        }
-    });
-
-    return Promise.resolve(resolvedPath.map(function(entity, index) {
-        var segmentIndex = index - pathOffset;
-        return {
-            entity: entity,
-            index: index,
-            segment: segmentIndex >= 0 && segmentIndex < breadcrumb.length
-                ? breadcrumb[segmentIndex]
-                : null,
-            isPlant: isPlantEntity(entity),
-            isSelectedEntity: index === resolvedPath.length - 1,
-            deepestPlantIndex: deepestPlantIndex,
-            plantIndex: index,
-            isDeepestPlant: deepestPlantIndex === index
-        };
+    return Promise.all(resolvedPath.map(function(entity, index) {
+        return ensureEntityRoleInfo(entity, getEntityRef(entity)).then(function(resolvedEntity) {
+            var segmentIndex = index - pathOffset;
+            var roleInfo = getEntityRoleInfo(resolvedEntity);
+            return {
+                entity: resolvedEntity,
+                index: index,
+                segment: segmentIndex >= 0 && segmentIndex < breadcrumb.length
+                    ? breadcrumb[segmentIndex]
+                    : null,
+                isPlant: !!roleInfo.isPlant,
+                isPlantAgg: !!roleInfo.isPlantAgg,
+                classification: roleInfo.classification || 'other',
+                roleSource: roleInfo.classificationSource || '',
+                isSelectedEntity: index === resolvedPath.length - 1,
+                plantIndex: index
+            };
+        });
     })).then(function(scopeFacts) {
         var selectedFact = null;
         var selectedRef = getEntityRef(selectedEntity);
         var branchScopeFact = null;
+        var deepestPlantIndex = -1;
         var deepestPlantFact = deepestPlantIndex >= 0 ? scopeFacts[deepestPlantIndex] : null;
-        var i;
+
+        function findNearestAggregationAbove(startIndex) {
+            for (var i = startIndex - 1; i >= 0; i--) {
+                if (scopeFacts[i].isPlantAgg) {
+                    return scopeFacts[i];
+                }
+            }
+            return null;
+        }
+
+        scopeFacts.forEach(function(fact, index) {
+            fact.deepestPlantIndex = -1;
+            fact.isDeepestPlant = false;
+            if (fact.isPlant) {
+                deepestPlantIndex = index;
+            }
+        });
+
+        deepestPlantFact = deepestPlantIndex >= 0 ? scopeFacts[deepestPlantIndex] : null;
 
         scopeFacts.forEach(function(fact) {
             if (!selectedRef) return;
             if (getVisitedKey(getEntityRef(fact.entity)) === getVisitedKey(selectedRef)) {
                 selectedFact = fact;
             }
+            fact.deepestPlantIndex = deepestPlantIndex;
+            fact.isDeepestPlant = deepestPlantIndex === fact.index;
         });
 
         hwStateLog('branch_scope_evaluated', {
             selectedEntity: summarizeEntity(selectedEntity),
+            selectedRole: summarizeRoleInfo(selectedEntity),
             resolvedPath: scopeFacts.map(summarizeBranchScopeFact)
         });
 
-        if (!deepestPlantFact && selectedFact && !selectedFact.isPlant) {
+        if (selectedFact && selectedFact.isPlantAgg) {
             branchScopeFact = selectedFact;
-            branchScopeFact.scopeReason = 'selected_container';
+            branchScopeFact.scopeReason = 'selected_plant_aggregation';
+        }
+
+        if (!branchScopeFact && selectedFact && selectedFact.isPlant) {
+            branchScopeFact = findNearestAggregationAbove(selectedFact.index);
+            if (branchScopeFact) {
+                branchScopeFact.scopeReason = 'nearest_plant_aggregation_above_selected_plant';
+            }
+        }
+
+        if (!branchScopeFact && selectedFact && selectedFact.isPlant) {
+            branchScopeFact = selectedFact;
+            branchScopeFact.scopeReason = 'fallback_selected_plant';
+            hwStateWarn('branch_scope_missing_aggregation_ancestor', {
+                selectedEntity: summarizeEntity(selectedEntity),
+                deepestPlant: summarizeEntity(selectedFact.entity),
+                resolvedPath: scopeFacts.map(summarizeBranchScopeFact)
+            });
         }
 
         if (!branchScopeFact && deepestPlantFact) {
-            for (i = deepestPlantIndex - 1; i >= 0; i--) {
-                if (!scopeFacts[i].isPlant) {
-                    branchScopeFact = scopeFacts[i];
-                    branchScopeFact.scopeReason = 'nearest_non_plant_above_deepest_plant';
-                    break;
-                }
+            branchScopeFact = findNearestAggregationAbove(deepestPlantIndex);
+            if (branchScopeFact) {
+                branchScopeFact.scopeReason = 'nearest_plant_aggregation_above_deepest_plant';
             }
         }
 
@@ -832,38 +1154,7 @@ function determineBranchScopeRoot(resolvedPath, breadcrumb, selectedEntity) {
 
         if (!branchScopeFact && selectedFact) {
             branchScopeFact = selectedFact;
-            branchScopeFact.scopeReason = 'fallback_selected_entity';
-        }
-
-        if (!branchScopeFact) {
-            for (i = scopeFacts.length - 1; i >= 0; i--) {
-                if (!scopeFacts[i].isPlant) {
-                    branchScopeFact = scopeFacts[i];
-                    branchScopeFact.scopeReason = 'fallback_nearest_non_plant';
-                    break;
-                }
-            }
-        }
-
-        if (!branchScopeFact && scopeFacts.length > 0) {
-            branchScopeFact = scopeFacts[scopeFacts.length - 1];
-            branchScopeFact.scopeReason = 'fallback_last_path_entity';
-        }
-
-        if (branchScopeFact && deepestPlantFact && !branchScopeFact.isPlant && branchScopeFact.index > deepestPlantIndex) {
-            branchScopeFact = deepestPlantFact;
-            branchScopeFact.scopeReason = 'fallback_deepest_plant';
-            hwStateWarn('branch_scope_invalid_non_plant_position', {
-                selectedEntity: summarizeEntity(selectedEntity),
-                scopeRoot: summarizeEntity(branchScopeFact.entity),
-                deepestPlant: summarizeEntity(deepestPlantFact.entity)
-            });
-        }
-
-        if (branchScopeFact) {
-            branchScopeFact.isDeepestPlant = deepestPlantFact
-                ? getVisitedKey(getEntityRef(branchScopeFact.entity)) === getVisitedKey(getEntityRef(deepestPlantFact.entity))
-                : false;
+            branchScopeFact.scopeReason = 'selected_container';
         }
 
         if (!branchScopeFact) {
@@ -872,8 +1163,10 @@ function determineBranchScopeRoot(resolvedPath, breadcrumb, selectedEntity) {
 
         hwStateLog('branch_scope_selected', {
             selectedEntity: summarizeEntity(selectedEntity),
+            selectedRole: summarizeRoleInfo(selectedEntity),
             scopeRoot: summarizeEntity(branchScopeFact && branchScopeFact.entity),
             scopeRootIsPlant: !!(branchScopeFact && branchScopeFact.isPlant),
+            scopeRootIsPlantAgg: !!(branchScopeFact && branchScopeFact.isPlantAgg),
             scopeRootReason: branchScopeFact && branchScopeFact.scopeReason ? branchScopeFact.scopeReason : '',
             deepestPlant: summarizeEntity(deepestPlantFact && deepestPlantFact.entity)
         });
@@ -897,15 +1190,14 @@ function filterCandidateEntities(candidates, segment, nextSegment, context) {
                 matchesNextSegment: !!(nextSegment && nextSegment.name && children.some(function(child) {
                     return entityMatchesNodeName(child, nextSegment.name);
                 })),
-                isPlant: isPlantEntity(candidate)
+                isPlant: isPlantEntity(candidate),
+                isPlantAgg: isPlantAggregationEntity(candidate),
+                roleSource: getEntityRoleInfo(candidate).classificationSource || ''
             };
         });
     })).then(function(candidateFacts) {
         var filteredFacts = candidateFacts.slice();
         var matchedNextSegment;
-        var candidatesWithChildren;
-        var nonPlantCandidates;
-        var leafCandidates;
 
         if (nextSegment && nextSegment.name) {
             matchedNextSegment = filteredFacts.filter(function(fact) {
@@ -914,36 +1206,6 @@ function filterCandidateEntities(candidates, segment, nextSegment, context) {
 
             if (matchedNextSegment.length) {
                 filteredFacts = matchedNextSegment;
-            }
-        }
-
-        if (segment && (segment.hasVisibleChildren || segment.expandable)) {
-            candidatesWithChildren = filteredFacts.filter(function(fact) {
-                return fact.hasChildren;
-            });
-
-            if (candidatesWithChildren.length) {
-                filteredFacts = candidatesWithChildren;
-            }
-        }
-
-        if (context && context.isTopLevel && segment && (segment.hasVisibleChildren || segment.expandable)) {
-            nonPlantCandidates = filteredFacts.filter(function(fact) {
-                return !fact.isPlant;
-            });
-
-            if (nonPlantCandidates.length) {
-                filteredFacts = nonPlantCandidates;
-            }
-        }
-
-        if (context && context.isFinalSegment && segment && !segment.hasVisibleChildren && !segment.expandable) {
-            leafCandidates = filteredFacts.filter(function(fact) {
-                return !fact.hasChildren;
-            });
-
-            if (leafCandidates.length) {
-                filteredFacts = leafCandidates;
             }
         }
 
@@ -956,6 +1218,8 @@ function filterCandidateEntities(candidates, segment, nextSegment, context) {
                     entity: summarizeEntity(fact.entity),
                     childCount: fact.childCount,
                     isPlant: fact.isPlant,
+                    isPlantAgg: fact.isPlantAgg,
+                    roleSource: fact.roleSource,
                     matchesNextSegment: fact.matchesNextSegment
                 };
             })
@@ -999,7 +1263,8 @@ function resolveChildEntityByName(parentEntity, segment, nextSegment, context) {
 }
 
 function resolveSelectionStateFromNode(nodeEl) {
-    var breadcrumb = getNodeBreadcrumb(nodeEl);
+    var clickedRow = getPreferredTreeRow(nodeEl) || findClickableRow(nodeEl) || nodeEl;
+    var breadcrumb = getNodeBreadcrumb(clickedRow);
     var pathNames = breadcrumb.map(function(segment) {
         return segment.name;
     });
@@ -1007,7 +1272,7 @@ function resolveSelectionStateFromNode(nodeEl) {
     var rootRef = getRootHierarchyEntityRef();
 
     hwStateLog('selection_click', {
-        clickedLabel: getNodeText(nodeEl),
+        clickedLabel: getNodeText(clickedRow),
         pathNames: pathNames,
         breadcrumb: breadcrumb.map(summarizeBreadcrumbSegment),
         clickedRow: summarizeBreadcrumbSegment(clickedSegment),
@@ -1090,6 +1355,7 @@ function resolveSelectionStateFromNode(nodeEl) {
         var selectedEntity;
         var plantIndex = -1;
         var selectedKind = 'container';
+        var selectedRole;
         var i;
 
         if (!resolvedStates || !resolvedStates.length) {
@@ -1123,6 +1389,7 @@ function resolveSelectionStateFromNode(nodeEl) {
         }
 
         selectedEntity = resolvedPath[resolvedPath.length - 1];
+        selectedRole = getEntityRoleInfo(selectedEntity);
 
         return determineBranchScopeRoot(resolvedPath, breadcrumb, selectedEntity).then(function(branchScopeFact) {
             var branchRoot = branchScopeFact && branchScopeFact.entity ? branchScopeFact.entity : null;
@@ -1134,9 +1401,9 @@ function resolveSelectionStateFromNode(nodeEl) {
                 }
             }
 
-            if (plantIndex === -1) {
+            if (selectedRole.isPlantAgg || (!selectedRole.isPlant && plantIndex === -1)) {
                 selectedKind = 'container';
-            } else if (plantIndex === resolvedPath.length - 1) {
+            } else if (selectedRole.isPlant) {
                 selectedKind = 'plant';
             } else {
                 selectedKind = 'descendant_below_plant';
@@ -1144,10 +1411,12 @@ function resolveSelectionStateFromNode(nodeEl) {
 
             hwStateLog('selection_resolved', {
                 clickedEntity: summarizeEntity(selectedEntity),
+                clickedRole: summarizeRoleInfo(selectedEntity),
                 selectedKind: selectedKind,
                 branchRoot: summarizeEntity(branchRoot),
                 scopeRootReason: branchScopeFact && branchScopeFact.scopeReason ? branchScopeFact.scopeReason : '',
                 scopeRootIsPlant: !!(branchScopeFact && branchScopeFact.isPlant),
+                scopeRootIsPlantAgg: !!(branchScopeFact && branchScopeFact.isPlantAgg),
                 breadcrumb: breadcrumb.map(summarizeBreadcrumbSegment),
                 resolvedPath: resolvedPath.map(summarizeEntity)
             });
@@ -1158,6 +1427,7 @@ function resolveSelectionStateFromNode(nodeEl) {
                 selectedKind: selectedKind,
                 scopeRootReason: branchScopeFact && branchScopeFact.scopeReason ? branchScopeFact.scopeReason : '',
                 scopeRootIsPlant: !!(branchScopeFact && branchScopeFact.isPlant),
+                scopeRootIsPlantAgg: !!(branchScopeFact && branchScopeFact.isPlantAgg),
                 pathNames: pathNames,
                 breadcrumb: breadcrumb,
                 resolvedPath: resolvedPath
@@ -1226,6 +1496,13 @@ function pushSelectionToDashboardState(selectionState) {
 
     if (branchRootParam) {
         params.SelectedBranchRoot = branchRootParam;
+        hwStateLog('branch_root_emitted', {
+            clickedEntity: summarizeEntity(selectionState.selectedEntity),
+            branchRoot: safeParseJson(params.SelectedBranchRoot),
+            scopeRootReason: selectionState.scopeRootReason || '',
+            scopeRootIsPlant: !!selectionState.scopeRootIsPlant,
+            scopeRootIsPlantAgg: !!selectionState.scopeRootIsPlantAgg
+        });
     } else {
         delete params.SelectedBranchRoot;
         hwStateWarn('branch_root_missing', {
@@ -1239,7 +1516,8 @@ function pushSelectionToDashboardState(selectionState) {
         SelectedBranchRoot: safeParseJson(params.SelectedBranchRoot),
         selectedKind: selectionState.selectedKind,
         scopeRootReason: selectionState.scopeRootReason || '',
-        scopeRootIsPlant: !!selectionState.scopeRootIsPlant
+        scopeRootIsPlant: !!selectionState.scopeRootIsPlant,
+        scopeRootIsPlantAgg: !!selectionState.scopeRootIsPlantAgg
     });
 
     try {
@@ -1476,15 +1754,12 @@ function bindNodeSelection() {
         var row = findClickableRow(e.target);
         if (!row) return;
 
-        var nodeEl = findNodeElement(row);
-        if (!nodeEl) return;
-
-        var nodeName = getNodeText(nodeEl);
+        var nodeName = getNodeText(row);
         if (!nodeName) return;
 
         var selectionToken = ++hwSelectionSeq;
 
-        resolveSelectionStateFromNode(nodeEl).then(function(selectionState) {
+        resolveSelectionStateFromNode(row).then(function(selectionState) {
             if (selectionToken !== hwSelectionSeq) return;
             if (!selectionState || !selectionState.selectedEntity) return;
             pushSelectionToDashboardState(selectionState);
@@ -1492,11 +1767,34 @@ function bindNodeSelection() {
     }, true);
 }
 
+function isTreeWrapperElement(el) {
+    if (!el || !el.tagName) return false;
+
+    var tag = (el.tagName || '').toLowerCase();
+    return tag === 'mat-nested-tree-node' ||
+        tag === 'mat-tree-node' ||
+        el.getAttribute('role') === 'treeitem';
+}
+
+function getPreferredTreeRow(el) {
+    if (!el || !el.tagName) return null;
+
+    if (isTreeWrapperElement(el)) {
+        var row = getNodeRow(el);
+        if (row && ((row.textContent || '').trim() || getNodeText(row))) {
+            return row;
+        }
+    }
+
+    return isNodeRowElement(el) ? el : null;
+}
+
 function findClickableRow(el) {
     var current = el;
     while (current && current !== widgetRoot) {
-        if (isNodeRowElement(current)) {
-            return current;
+        var preferred = getPreferredTreeRow(current);
+        if (preferred) {
+            return preferred;
         }
         current = current.parentElement;
     }
