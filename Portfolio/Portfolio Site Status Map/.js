@@ -36,18 +36,8 @@ self.onInit = function () {
     }
 };
 
-// ============================================================
-// KEY / ALIAS MATCHING
-// ============================================================
-var KEY_ALIASES = {
-    lat:      ['latitude', 'lat'],
-    lon:      ['longitude', 'lon'],
-    capacity: ['Plant Total Capacity', 'plant total capacity', 'capacity'],
-    name:     ['plant_name', 'name'],
-    status:   ['status'],
-    rarLkr:   ['rar_lkr'],
-    cfStatus: ['cf_status']
-};
+var entityRoleCache = {};
+var ENTITY_ROLE_KEYS = ['isPlant', 'isPlantAgg'];
 
 function normalizeKey(value) {
     return (value || '').toString().trim().toLowerCase();
@@ -201,6 +191,7 @@ function annotateEntityType(entity, entityType) {
 
 function summarizeEntity(entity) {
     if (!entity) { return null; }
+    var roleInfo = getEntityRoleInfo(entity);
     return {
         id: shortId(entity.id && entity.id.id || entity.id),
         entityType: normalizeEntityType(
@@ -210,7 +201,11 @@ function summarizeEntity(entity) {
             ''
         ) || 'UNKNOWN',
         profile: getEntityProfile(entity),
-        name: entity.name || ''
+        name: entity.name || '',
+        role: roleInfo.classification || 'other',
+        roleSource: roleInfo.classificationSource || '',
+        isPlant: !!roleInfo.isPlant,
+        isPlantAgg: !!roleInfo.isPlantAgg
     };
 }
 
@@ -238,8 +233,275 @@ function debugWarn(renderToken, stage, payload) {
     console.warn('[PortfolioMap][' + getRenderId(renderToken) + '] ' + stage, payload || {});
 }
 
+function normalizeBooleanFlag(value) {
+    if (value === true || value === false) { return value; }
+    if (value === null || value === undefined) { return null; }
+
+    if (typeof value === 'number') {
+        return value !== 0;
+    }
+
+    var normalized = value.toString().trim().toLowerCase();
+    if (!normalized) { return null; }
+
+    if (normalized === 'true' || normalized === '1' || normalized === 'yes' ||
+        normalized === 'y' || normalized === 'on') {
+        return true;
+    }
+
+    if (normalized === 'false' || normalized === '0' || normalized === 'no' ||
+        normalized === 'n' || normalized === 'off') {
+        return false;
+    }
+
+    return null;
+}
+
+function getAttributeValueCaseInsensitive(attributeMap, key) {
+    if (!attributeMap) { return undefined; }
+
+    if (Object.prototype.hasOwnProperty.call(attributeMap, key)) {
+        return attributeMap[key];
+    }
+
+    var target = normalizeKey(key);
+    for (var attrKey in attributeMap) {
+        if (!Object.prototype.hasOwnProperty.call(attributeMap, attrKey)) { continue; }
+        if (normalizeKey(attrKey) === target) {
+            return attributeMap[attrKey];
+        }
+    }
+
+    return undefined;
+}
+
+function hasAttributeValue(attributeMap, key) {
+    var value = getAttributeValueCaseInsensitive(attributeMap, key);
+    return value !== undefined && value !== null &&
+        !(typeof value === 'string' && value.trim() === '');
+}
+
+function getScopedAttributeUrl(entityType, entityId, scope, keys) {
+    return '/api/plugins/telemetry/' + (normalizeEntityType(entityType) || 'ASSET') + '/' + entityId +
+        '/values/attributes/' + scope + '?keys=' + encodeURIComponent((keys || []).join(','));
+}
+
+function fetchScopedEntityAttributes(entityRef, scope, keys, token, renderToken, context) {
+    if (!entityRef || !entityRef.id || !isSupportedTraversalEntityType(entityRef.entityType)) {
+        return Promise.resolve({});
+    }
+
+    return apiGet(getScopedAttributeUrl(entityRef.entityType, entityRef.id, scope, keys), token).then(function (resp) {
+        return normalizeAttributeMap(resp);
+    }).catch(function (error) {
+        debugWarn(renderToken, 'entity_role_scope_failed', {
+            context: context || 'entity_role',
+            entity: summarizeEntityRef(entityRef),
+            scope: scope,
+            status: error && (error.status || error.statusCode || '')
+        });
+        return {};
+    });
+}
+
+function resolveEntityRoleFlags(entityRef, token, renderToken, context) {
+    return fetchScopedEntityAttributes(entityRef, 'SERVER_SCOPE', ENTITY_ROLE_KEYS, token, renderToken, context).then(function (serverAttrs) {
+        var missingPlant = !hasAttributeValue(serverAttrs, 'isPlant');
+        var missingPlantAgg = !hasAttributeValue(serverAttrs, 'isPlantAgg');
+
+        if (!missingPlant && !missingPlantAgg) {
+            return {
+                serverAttrs: serverAttrs,
+                sharedAttrs: {}
+            };
+        }
+
+        return fetchScopedEntityAttributes(entityRef, 'SHARED_SCOPE', ENTITY_ROLE_KEYS, token, renderToken, context).then(function (sharedAttrs) {
+            return {
+                serverAttrs: serverAttrs,
+                sharedAttrs: sharedAttrs
+            };
+        });
+    }).then(function (result) {
+        var serverAttrs = result.serverAttrs || {};
+        var sharedAttrs = result.sharedAttrs || {};
+        var hasPlant = hasAttributeValue(serverAttrs, 'isPlant') || hasAttributeValue(sharedAttrs, 'isPlant');
+        var hasPlantAgg = hasAttributeValue(serverAttrs, 'isPlantAgg') || hasAttributeValue(sharedAttrs, 'isPlantAgg');
+        var rawPlant = hasAttributeValue(serverAttrs, 'isPlant')
+            ? getAttributeValueCaseInsensitive(serverAttrs, 'isPlant')
+            : getAttributeValueCaseInsensitive(sharedAttrs, 'isPlant');
+        var rawPlantAgg = hasAttributeValue(serverAttrs, 'isPlantAgg')
+            ? getAttributeValueCaseInsensitive(serverAttrs, 'isPlantAgg')
+            : getAttributeValueCaseInsensitive(sharedAttrs, 'isPlantAgg');
+
+        return {
+            hasPlant: hasPlant,
+            hasPlantAgg: hasPlantAgg,
+            isPlant: hasPlant ? normalizeBooleanFlag(rawPlant) : null,
+            isPlantAgg: hasPlantAgg ? normalizeBooleanFlag(rawPlantAgg) : null
+        };
+    });
+}
+
+function buildEntityRoleInfo(entity, resolvedFlags) {
+    var legacyPlant = isPlantProfile(getEntityProfile(entity));
+    var hasPlant = !!(resolvedFlags && resolvedFlags.hasPlant);
+    var hasPlantAgg = !!(resolvedFlags && resolvedFlags.hasPlantAgg);
+    var explicitPlant = hasPlant && resolvedFlags.isPlant === true;
+    var explicitPlantAgg = hasPlantAgg && resolvedFlags.isPlantAgg === true;
+    var roleInfo = {
+        isPlant: false,
+        isPlantAgg: false,
+        classification: 'other',
+        classificationSource: 'attributes_explicit_other',
+        hasExplicitFlags: hasPlant || hasPlantAgg,
+        hasPlantAttr: hasPlant,
+        hasPlantAggAttr: hasPlantAgg,
+        rawIsPlant: hasPlant ? resolvedFlags.isPlant : null,
+        rawIsPlantAgg: hasPlantAgg ? resolvedFlags.isPlantAgg : null,
+        legacyProfilePlant: legacyPlant
+    };
+
+    if (explicitPlantAgg && explicitPlant) {
+        roleInfo.isPlantAgg = true;
+        roleInfo.classification = 'aggregation';
+        roleInfo.classificationSource = 'attributes_conflict_prefer_aggregation';
+        return roleInfo;
+    }
+
+    if (explicitPlantAgg) {
+        roleInfo.isPlantAgg = true;
+        roleInfo.classification = 'aggregation';
+        roleInfo.classificationSource = 'attributes';
+        return roleInfo;
+    }
+
+    if (explicitPlant) {
+        roleInfo.isPlant = true;
+        roleInfo.classification = 'plant';
+        roleInfo.classificationSource = 'attributes';
+        return roleInfo;
+    }
+
+    if (!roleInfo.hasExplicitFlags) {
+        roleInfo.isPlant = legacyPlant;
+        roleInfo.classification = legacyPlant ? 'plant' : 'other';
+        roleInfo.classificationSource = legacyPlant ? 'profile_fallback' : 'profile_fallback_non_plant';
+        return roleInfo;
+    }
+
+    return roleInfo;
+}
+
+function getEntityRoleInfo(entity) {
+    if (!entity) {
+        return {
+            isPlant: false,
+            isPlantAgg: false,
+            classification: 'other',
+            classificationSource: 'missing_entity',
+            hasExplicitFlags: false
+        };
+    }
+
+    if (entity._pmRoleInfo) {
+        return entity._pmRoleInfo;
+    }
+
+    return buildEntityRoleInfo(entity, null);
+}
+
+function summarizeRoleInfo(entity) {
+    var roleInfo = getEntityRoleInfo(entity);
+    return {
+        isPlant: !!roleInfo.isPlant,
+        isPlantAgg: !!roleInfo.isPlantAgg,
+        classification: roleInfo.classification || 'other',
+        classificationSource: roleInfo.classificationSource || '',
+        hasExplicitFlags: !!roleInfo.hasExplicitFlags,
+        rawIsPlant: roleInfo.rawIsPlant,
+        rawIsPlantAgg: roleInfo.rawIsPlantAgg,
+        legacyProfilePlant: !!roleInfo.legacyProfilePlant
+    };
+}
+
+function ensureEntityRoleInfo(entity, entityRef, token, renderToken, context) {
+    if (!entity) {
+        return Promise.resolve(null);
+    }
+
+    var resolvedRef = entityRef || getEntityRef(entity);
+    var cacheKey = getVisitedKey(resolvedRef);
+
+    if (entity._pmRoleInfo) {
+        return Promise.resolve(entity);
+    }
+
+    if (cacheKey && entityRoleCache[cacheKey]) {
+        entity._pmRoleInfo = entityRoleCache[cacheKey];
+        return Promise.resolve(entity);
+    }
+
+    if (!resolvedRef || !resolvedRef.id || !isSupportedTraversalEntityType(resolvedRef.entityType)) {
+        entity._pmRoleInfo = buildEntityRoleInfo(entity, null);
+        return Promise.resolve(entity);
+    }
+
+    return resolveEntityRoleFlags(resolvedRef, token, renderToken, context).then(function (flags) {
+        var roleInfo = buildEntityRoleInfo(entity, flags);
+
+        entity._pmRoleInfo = roleInfo;
+        entityRoleCache[cacheKey] = roleInfo;
+
+        debugLog(renderToken, 'entity_role_resolved', {
+            context: context || 'entity_role',
+            entity: summarizeEntityRef(resolvedRef),
+            name: entity.name || '',
+            role: summarizeRoleInfo({
+                _pmRoleInfo: roleInfo
+            })
+        });
+
+        if (roleInfo.classificationSource === 'attributes_conflict_prefer_aggregation') {
+            debugWarn(renderToken, 'entity_role_conflict', {
+                context: context || 'entity_role',
+                entity: summarizeEntityRef(resolvedRef),
+                role: summarizeRoleInfo({
+                    _pmRoleInfo: roleInfo
+                })
+            });
+        }
+
+        if (roleInfo.classificationSource.indexOf('profile_fallback') === 0) {
+            debugLog(renderToken, 'entity_role_profile_fallback', {
+                context: context || 'entity_role',
+                entity: summarizeEntityRef(resolvedRef),
+                name: entity.name || '',
+                role: summarizeRoleInfo({
+                    _pmRoleInfo: roleInfo
+                })
+            });
+        }
+
+        return entity;
+    }).catch(function (error) {
+        entity._pmRoleInfo = buildEntityRoleInfo(entity, null);
+        debugWarn(renderToken, 'entity_role_fallback', {
+            context: context || 'entity_role',
+            entity: summarizeEntityRef(resolvedRef),
+            message: error && error.message ? error.message : '',
+            role: summarizeRoleInfo(entity)
+        });
+        return entity;
+    });
+}
+
+function isPlantAggregationEntity(entity) {
+    return !!getEntityRoleInfo(entity).isPlantAgg;
+}
+
 function isPlantEntity(entity) {
-    return isPlantProfile(getEntityProfile(entity));
+    return !!getEntityRoleInfo(entity).isPlant;
 }
 
 function getVisitedKey(entityRef) {
@@ -282,12 +544,6 @@ function getEntityKey(datasource) {
     var entityType = datasource.entityType || 'ENTITY';
     var entityName = datasource.entityName || datasource.name || 'unknown';
     return entityType + ':' + entityName;
-}
-
-function matchesAnyKey(dataKey, aliases) {
-    var keyName = normalizeKey(dataKey && dataKey.name);
-    var keyLabel = normalizeKey(dataKey && dataKey.label);
-    return aliases.indexOf(keyName) > -1 || aliases.indexOf(keyLabel) > -1;
 }
 
 // ============================================================
@@ -398,6 +654,14 @@ function resolveSelectedEntity(entityId, entityType, token, renderToken, context
         attemptedTypes.push(currentType);
         return getEntityByType(entityId, currentType, token).then(function (entity) {
             var annotated = annotateEntityType(entity, currentType);
+            return ensureEntityRoleInfo(
+                annotated,
+                buildEntityRef(entityId, currentType),
+                token,
+                renderToken,
+                context || 'selected_entity'
+            );
+        }).then(function (annotated) {
             debugLog(renderToken, 'resolve_selected_entity_success', {
                 context: context || 'selected_entity',
                 entityId: shortId(entityId),
@@ -445,6 +709,14 @@ function fetchTraversalEntity(entityRef, token, renderToken, context) {
 
     return getEntityByType(entityRef.id, entityType, token).then(function (entity) {
         return annotateEntityType(entity, entityType);
+    }).then(function (annotated) {
+        return ensureEntityRoleInfo(
+            annotated,
+            buildEntityRef(entityRef.id, entityType),
+            token,
+            renderToken,
+            context || 'traversal'
+        );
     }).catch(function (error) {
         if (isNotFoundError(error)) {
             debugWarn(renderToken, 'fetch_traversal_entity_not_found', {
@@ -611,10 +883,10 @@ function findNearestPlantAncestors(entityRef, authToken, renderToken, maxUp) {
     }, 'plant_ancestor_search');
 }
 
-function findNearestNonPlantAncestors(entityRef, authToken, renderToken, maxUp) {
+function findNearestPlantAggregationAncestors(entityRef, authToken, renderToken, maxUp) {
     return findNearestAncestorMatches(entityRef, authToken, renderToken, maxUp, function (entity) {
-        return !isPlantEntity(entity);
-    }, 'non_plant_ancestor_search');
+        return isPlantAggregationEntity(entity);
+    }, 'plant_aggregation_ancestor_search');
 }
 
 function renderSelectedPlantOnly(plantEntity, authToken, renderToken, reason, details) {
@@ -771,35 +1043,32 @@ function resolveBranchFromPlant(plantEntity, authToken, renderToken, context) {
         plant: summarizeEntity(plantEntity)
     });
 
-    return tryRenderPlantSubtree(plantEntity, authToken, renderToken, context).then(function (usedPlantSubtree) {
-        if (renderToken !== self._pendingRender || usedPlantSubtree) { return; }
+    return findNearestPlantAggregationAncestors(plantRef, authToken, renderToken).then(function (branchAncestors) {
+        if (renderToken !== self._pendingRender) { return; }
 
-        return findNearestNonPlantAncestors(plantRef, authToken, renderToken).then(function (branchAncestors) {
-            if (renderToken !== self._pendingRender) { return; }
+        if (!branchAncestors || branchAncestors.length === 0) {
+            return renderSelectedPlantOnly(plantEntity, authToken, renderToken, 'no_plant_aggregation_ancestor', {
+                context: context
+            });
+        }
 
-            if (!branchAncestors || branchAncestors.length === 0) {
-                return renderSelectedPlantOnly(plantEntity, authToken, renderToken, 'no_supported_parents', {
-                    context: context
-                });
-            }
-
-            if (branchAncestors.length > 1) {
-                return renderSelectedPlantOnly(plantEntity, authToken, renderToken, 'ambiguous_branch', {
-                    context: context,
-                    branchCandidates: summarizeEntities(branchAncestors)
-                });
-            }
-
-            debugLog(renderToken, 'resolve_branch_from_plant_success', {
+        if (branchAncestors.length > 1) {
+            return renderSelectedPlantOnly(plantEntity, authToken, renderToken, 'ambiguous_plant_aggregation', {
                 context: context,
-                plant: summarizeEntity(plantEntity),
-                branchRoot: summarizeEntity(branchAncestors[0])
+                branchCandidates: summarizeEntities(branchAncestors)
             });
+        }
 
-            return fetchAndRender(getEntityRef(branchAncestors[0]), authToken, renderToken, {
-                branchRootKind: 'container',
-                branchRoot: branchAncestors[0]
-            });
+        debugLog(renderToken, 'resolve_branch_from_plant_success', {
+            context: context,
+            plant: summarizeEntity(plantEntity),
+            branchRoot: summarizeEntity(branchAncestors[0]),
+            branchRule: 'nearest_plant_aggregation_ancestor'
+        });
+
+        return fetchAndRender(getEntityRef(branchAncestors[0]), authToken, renderToken, {
+            branchRootKind: 'container',
+            branchRoot: branchAncestors[0]
         });
     });
 }
@@ -899,9 +1168,7 @@ function fetchPlantDescendants(rootEntityRef, token, renderToken, maxDepth) {
 // ============================================================
 // TELEMETRY / ATTRIBUTE FETCH
 // ============================================================
-var TELEMETRY_KEYS = ['latitude', 'lat', 'longitude', 'lon',
-                      'Plant Total Capacity', 'plant total capacity', 'capacity',
-                      'plant_name', 'name',
+var TELEMETRY_KEYS = ['latitude', 'longitude', 'Capacity', 'name',
                       'status', 'rar_lkr', 'cf_status'];
 
 function getTelemetryEntityType(entity) {
@@ -915,11 +1182,37 @@ function getTelemetryEntityType(entity) {
     return entityType || 'ASSET';
 }
 
-function getServerAttributes(entityId, entityType, token) {
-    var url = '/api/plugins/telemetry/' + (normalizeEntityType(entityType) || 'ASSET') + '/' + entityId +
-              '/values/attributes/SERVER_SCOPE?keys=' +
-              encodeURIComponent(TELEMETRY_KEYS.join(','));
-    return apiGet(url, token);
+function getTelemetryAttributes(entityRef, scope, token, renderToken) {
+    return fetchScopedEntityAttributes(
+        entityRef,
+        scope,
+        TELEMETRY_KEYS,
+        token,
+        renderToken,
+        'plant_data'
+    );
+}
+
+function mergeAttributeMaps(baseMap, overlayMap) {
+    var merged = {};
+    var key;
+
+    baseMap = normalizeAttributeMap(baseMap);
+    overlayMap = normalizeAttributeMap(overlayMap);
+
+    for (key in baseMap) {
+        if (Object.prototype.hasOwnProperty.call(baseMap, key)) {
+            merged[key] = baseMap[key];
+        }
+    }
+
+    for (key in overlayMap) {
+        if (Object.prototype.hasOwnProperty.call(overlayMap, key)) {
+            merged[key] = overlayMap[key];
+        }
+    }
+
+    return merged;
 }
 
 function normalizeAttributeMap(attributeData) {
@@ -939,22 +1232,24 @@ function normalizeAttributeMap(attributeData) {
     return attributeData;
 }
 
-function fetchTelemetryForAssets(assets, token) {
+function fetchTelemetryForAssets(assets, token, renderToken) {
     var promises = assets.map(function (asset) {
         var id = asset.id && asset.id.id || asset.id;
         var entityType = getTelemetryEntityType(asset);
+        var entityRef = buildEntityRef(id, entityType);
         var telemetryUrl = '/api/plugins/telemetry/' + entityType + '/' + id +
                            '/values/timeseries?keys=' + encodeURIComponent(TELEMETRY_KEYS.join(',')) +
                            '&limit=1';
 
         return Promise.all([
             apiGet(telemetryUrl, token).catch(function () { return {}; }),
-            getServerAttributes(id, entityType, token).catch(function () { return {}; })
+            getTelemetryAttributes(entityRef, 'SERVER_SCOPE', token, renderToken).catch(function () { return {}; }),
+            getTelemetryAttributes(entityRef, 'SHARED_SCOPE', token, renderToken).catch(function () { return {}; })
         ]).then(function (result) {
             return {
                 asset: asset,
                 telemetry: result[0] || {},
-                attributes: normalizeAttributeMap(result[1])
+                attributes: mergeAttributeMaps(result[2], result[1])
             };
         });
     });
@@ -974,27 +1269,29 @@ function buildSiteFromTelemetry(asset, telemetry, attributes) {
     var assetId = asset.id && asset.id.id || asset.id;
     var assetName = asset.name || 'Unknown';
 
-    function tv(keys) {
-        for (var i = 0; i < keys.length; i++) {
-            var telemetryValue = extractLatestValue(telemetry[keys[i]]);
-            if (telemetryValue !== null && telemetryValue !== undefined) {
-                return telemetryValue;
-            }
-
-            if (attributes && attributes[keys[i]] !== null && attributes[keys[i]] !== undefined) {
-                return attributes[keys[i]];
-            }
+    function tv(key) {
+        var telemetryValue = extractLatestValue(telemetry[key]);
+        if (telemetryValue !== null && telemetryValue !== undefined) {
+            return telemetryValue;
         }
+
+        if (attributes &&
+            Object.prototype.hasOwnProperty.call(attributes, key) &&
+            attributes[key] !== null &&
+            attributes[key] !== undefined) {
+            return attributes[key];
+        }
+
         return null;
     }
 
-    var lat = parseFloat(tv(['latitude', 'lat']));
-    var lon = parseFloat(tv(['longitude', 'lon']));
-    var capacity = parseFloat(tv(['Plant Total Capacity', 'plant total capacity', 'capacity']));
-    var name = tv(['plant_name', 'name']) || assetName;
-    var status = tv(['status']);
-    var rar_lkr = parseFloat(tv(['rar_lkr']));
-    var cf_status = tv(['cf_status']);
+    var lat = parseFloat(tv('latitude'));
+    var lon = parseFloat(tv('longitude'));
+    var capacity = parseFloat(tv('Capacity'));
+    var name = tv('name') || assetName;
+    var status = tv('status');
+    var rar_lkr = parseFloat(tv('rar_lkr'));
+    var cf_status = tv('cf_status');
 
     return {
         entityId: assetId,
@@ -1158,15 +1455,20 @@ function continueResolveRenderRoot(asset, selectedEntityRef, selectedProfile, au
     var profile = normalizeProfile(
         getEntityProfile(asset) || selectedProfile || ''
     );
+    var selectedRole = getEntityRoleInfo(asset);
     var selectedResolvedRef = getEntityRef(asset, selectedEntityRef.entityType);
+    var selectedKind = selectedRole.isPlantAgg
+        ? 'aggregation'
+        : (selectedRole.isPlant ? 'plant' : 'other');
 
     debugLog(renderToken, 'continue_resolve_render_root', {
         selectedEntity: summarizeEntity(asset),
         selectedProfile: profile || '',
-        selectedKind: isPlantProfile(profile) ? 'plant' : 'non_plant'
+        selectedKind: selectedKind,
+        selectedRole: summarizeRoleInfo(asset)
     });
 
-    if (isPlantProfile(profile)) {
+    if (selectedRole.isPlant) {
         return resolveBranchFromPlant(asset, authToken, renderToken, 'selected_plant');
     }
 
@@ -1287,11 +1589,11 @@ function renderPlantAssets(assets, authToken, renderToken, renderMeta) {
         assets: summarizeEntities(assets)
     });
 
-    fetchTelemetryForAssets(assets, authToken).then(function (results) {
+    fetchTelemetryForAssets(assets, authToken, renderToken).then(function (results) {
         if (renderToken !== self._pendingRender) { return; }
         setLoadingState(false);
 
-        var useDuckTyping = isStrictDuckTypingEnabled();
+        var configuredStrictDuckTyping = isStrictDuckTypingEnabled();
         var sites = [];
         var droppedMissingLocation = 0;
         var droppedMissingCapacity = 0;
@@ -1303,10 +1605,6 @@ function renderPlantAssets(assets, authToken, renderToken, renderMeta) {
                 droppedMissingLocation++;
                 return;
             }
-            if (useDuckTyping && site.capacity === null) {
-                droppedMissingCapacity++;
-                return;
-            }
             if (site.capacity === null) {
                 renderedWithoutCapacity++;
             }
@@ -1316,7 +1614,9 @@ function renderPlantAssets(assets, authToken, renderToken, renderMeta) {
         debugLog(renderToken, 'render_summary', {
             branchRootKind: renderMeta.branchRootKind || '',
             branchRoot: summarizeEntity(renderMeta.branchRoot),
-            strictDuckTyping: useDuckTyping,
+            strictDuckTypingConfigured: configuredStrictDuckTyping,
+            strictDuckTypingApplied: false,
+            capacitySourceUnit: 'kW',
             telemetryFetchCount: results.length,
             renderedCount: sites.length,
             renderedWithoutCapacity: renderedWithoutCapacity,
@@ -1342,13 +1642,23 @@ function renderPlantAssets(assets, authToken, renderToken, renderMeta) {
             return;
         }
 
-        renderMarkers(sites);
-    }).catch(function () {
+        try {
+            renderMarkers(sites);
+        } catch (renderError) {
+            debugWarn(renderToken, 'render_markers_error', {
+                branchRootKind: renderMeta.branchRootKind || '',
+                branchRoot: summarizeEntity(renderMeta.branchRoot),
+                siteCount: sites.length,
+                error: renderError && renderError.message ? renderError.message : String(renderError)
+            });
+        }
+    }, function (fetchError) {
         if (renderToken !== self._pendingRender) { return; }
         debugWarn(renderToken, 'telemetry_fetch_failed', {
             branchRootKind: renderMeta.branchRootKind || '',
             branchRoot: summarizeEntity(renderMeta.branchRoot),
-            assetCount: assets.length
+            assetCount: assets.length,
+            error: fetchError && fetchError.message ? fetchError.message : String(fetchError)
         });
         setLoadingState(false);
         renderEmptyState(renderToken, 'telemetry_fetch_failed', {
@@ -1380,20 +1690,14 @@ function renderMarkers(sites) {
     var countWarn = 0;
     var countFault = 0;
     var bounds = [];
-    var displayUnit = (self.ctx.settings.capacityUnit || 'MW').trim();
+    var displayUnit = 'kW';
 
     sites.forEach(function (site) {
         var lat = site.lat;
         var lon = site.lon;
         var hasCapacity = site.capacity !== null && site.capacity !== undefined;
         var capVal = hasCapacity ? site.capacity : null;
-        var capMW = hasCapacity ? capVal : 0;
-        var unitUpperCase = displayUnit.toUpperCase();
-        if (hasCapacity && unitUpperCase === 'W') {
-            capMW = capVal / 1000000;
-        } else if (hasCapacity && unitUpperCase === 'KW') {
-            capMW = capVal / 1000;
-        }
+        var capMW = hasCapacity ? (capVal / 1000) : 0;
 
         var baseRadius = 6;
         if (capMW >= 50) {
@@ -1468,7 +1772,13 @@ function renderMarkers(sites) {
         '<span class="stat-fault">' + countFault + '</span>';
     $el.find('.js-stats').html(statsHtml);
 
-    if (self.ctx.detectChanges) { self.ctx.detectChanges(); }
+    try {
+        if (self.ctx.detectChanges) { self.ctx.detectChanges(); }
+    } catch (cdErr) {
+        if (typeof console !== 'undefined' && console.warn) {
+            console.warn('[PortfolioMap] detectChanges error in renderMarkers (non-fatal):', cdErr && cdErr.message ? cdErr.message : cdErr);
+        }
+    }
 }
 
 // ============================================================
@@ -1487,7 +1797,13 @@ function renderEmptyState(renderToken, reason, details) {
             details: details || {}
         });
     }
-    if (self.ctx.detectChanges) { self.ctx.detectChanges(); }
+    try {
+        if (self.ctx.detectChanges) { self.ctx.detectChanges(); }
+    } catch (cdErr) {
+        if (typeof console !== 'undefined' && console.warn) {
+            console.warn('[PortfolioMap] detectChanges error in renderEmptyState (non-fatal):', cdErr && cdErr.message ? cdErr.message : cdErr);
+        }
+    }
 }
 
 function setLoadingState(isLoading) {
